@@ -1,0 +1,9 @@
+/_site/
+/node_modules/
+/*.png
+/*.jpg
+/*.jpeg
+/.codex-*
+*.log
+.DS_Store
+Thumbs.db
