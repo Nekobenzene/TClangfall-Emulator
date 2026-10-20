@@ -4,7 +4,8 @@
   const M = StormModel, RAD = Math.PI / 180;
   const defaults={east:22.4,north:16.8,intensity:110,rainStrength:100,eyeRadius:15,wallRadius:40,stormRadius:110,influenceRadius:260,rmw:28,extent:180,mapEast:0,mapNorth:0,mapMode:'pan',siteId:'coast',floor:6,motionHeading:0,motionSpeed:0,advect:false,timeScale:60,simTime:0,yaw:8,pitch:-1.5,paused:false,sound:false,time:0};
   Object.assign(defaults,{freeCamera:false,freeX:0,freeY:18.9,freeZ:55,flightSpeed:35,zoom:1,clearFog:false});
-  const state={...defaults},flightKeys=new Set();
+  const state={...defaults},flightKeys=new Set(),touchFlightKeys=new Set(),touchReleases=[];
+  const mobileControls=()=>matchMedia("(pointer:coarse)").matches||innerWidth<=1000;
   const currentSite=()=>OBSERVATION_SITES.find(p=>p.id===state.siteId)||OBSERVATION_SITES[0];
   const observer=()=>ObserverCamera.observer(state,currentSite());
   const fieldOptions=()=>({eyeRadius:state.eyeRadius,wallRadius:state.wallRadius,stormRadius:state.stormRadius,influenceRadius:state.influenceRadius,rainStrength:state.rainStrength,heading:state.motionHeading,motionSpeed:state.motionSpeed});
@@ -23,7 +24,7 @@
   const mapController=createStormMap({canvas:map,state,getTarget:()=>target,getCamera:()=>camera,getObserver:observer,onChange:()=>updateTarget(),onSelectSite:selectSite});
   function selectSite(id){if(!OBSERVATION_SITES.some(p=>p.id===id))return;state.siteId=id;state.floor=clamp(state.floor,1,currentSite().maxFloor);setCameraMode(false);updateTarget();}
   function setCameraMode(free,overview=false){
-    flightKeys.clear();dragging=null;particleCamera=null;
+    flightKeys.clear();touchReleases.forEach(clear=>clear());dragging=null;particleCamera=null;
     if(free&&!state.freeCamera){const p=observer();state.freeX=p.x;state.freeY=p.y;state.freeZ=p.z;}
     state.freeCamera=free;
     if(overview)Object.assign(state,{freeX:210,freeY:180,freeZ:300,yaw:-28,pitch:-25,zoom:1});
@@ -38,7 +39,7 @@
     $('yawRange').min=free||fullscreenActive()?-180:-75;$('yawRange').max=free||fullscreenActive()?180:95;$('pitchRange').min=free?-89:-40;$('pitchRange').max=free?89:38;
     $('flightSpeedRange').value=state.flightSpeed;$('flightSpeedValue').textContent=state.flightSpeed+' m/s';
     $('clearFogButton').setAttribute('aria-pressed',String(state.clearFog));
-    $('viewHelp').textContent=fullscreenActive()?'M 切换鼠标环视 / 操作控件 · 滚轮缩放':free?'点击视窗后 WASD 水平移动 · Q/E 升降 · Shift 加速 · 拖动环视':'拖动 / 方向键转动 · 主视窗滚轮望远镜缩放';
+    $('viewHelp').textContent=mobileControls()?'单指拖动环视 · 双指缩放 · 上帝视角按住方向键飞行':fullscreenActive()?'M 切换鼠标环视 / 操作控件 · 滚轮缩放':free?'点击视窗后 WASD 水平移动 · Q/E 升降 · Shift 加速 · 拖动环视':'拖动 / 方向键转动 · 主视窗滚轮望远镜缩放';
   }
   function turnView(yaw,pitch){state.yaw=state.freeCamera||fullscreenActive()?ObserverCamera.bearing(yaw):clamp(yaw,-75,95);state.pitch=clamp(pitch,state.freeCamera?-89:-40,state.freeCamera?89:38);updateCamera();}
   let seed = 4512;
@@ -104,7 +105,7 @@
     if (typeof THREE === 'undefined') throw new Error('Three.js missing');
     const T = THREE;
     renderer = new T.WebGLRenderer({ antialias: true, alpha: false, logarithmicDepthBuffer:true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.65));
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobileControls()?1.25:1.65));
     renderer.outputColorSpace = T.SRGBColorSpace;
     renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
@@ -114,7 +115,7 @@
     camera = new T.PerspectiveCamera(58, 1, .1, 800000); camera.position.set(0, 18, 55);
     const ambient = new T.HemisphereLight('#c1d0d4', '#596364', 2.3); ambientLight=ambient;scene.add(ambient);
     const sun = new T.DirectionalLight('#c6d2d2', 1.2);sunLight=sun; sun.position.set(1100,640,-950); scene.add(sun);scene.add(sun.target);
-    sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-440,right:440,top:440,bottom:-440,near:10,far:3500});sun.shadow.bias=-.00025;sun.shadow.normalBias=.25;sun.shadow.radius=2;
+    sun.shadow.mapSize.set(mobileControls()?1024:2048,mobileControls()?1024:2048);Object.assign(sun.shadow.camera,{left:-440,right:440,top:440,bottom:-440,near:10,far:3500});sun.shadow.bias=-.00025;sun.shadow.normalBias=.25;sun.shadow.radius=2;
     eyeClouds=createEyeClouds(T);sky=createStormSky(T,eyeClouds.uniforms);scene.add(sky);
     eyeWall=createEyeWall(T,scene,eyeClouds.uniforms);
     const mat = (color, extra = {}) => new T.MeshStandardMaterial({color,roughness:.88,flatShading:true,...extra});
@@ -451,7 +452,7 @@
     const rawdt=(now-last)/1000;last=now;const dt=Math.min(rawdt,.045);
     fps=fps*.96+(1/Math.max(.001,rawdt))*.04;
     const logicalDt=Math.min(Math.max(rawdt,0),1),step=state.paused?0:dt;
-    ObserverCamera.move(state,flightKeys,logicalDt);
+    ObserverCamera.move(state,touchFlightKeys.size?new Set([...flightKeys,...touchFlightKeys]):flightKeys,logicalDt);
     if(fullscreenActive()&&mouseLookEnabled&&document.pointerLockElement!==view&&(edgePan.x||edgePan.y)){const speed=logicalDt/Math.sqrt(Math.max(.5,state.zoom));turnView(state.yaw+edgePan.x*95*speed,state.pitch-edgePan.y*65*speed);}
     if(!state.paused){state.time+=logicalDt;state.simTime+=logicalDt*state.timeScale;if(state.advect&&state.motionSpeed>0){const km=state.motionSpeed*1.852*logicalDt*state.timeScale/3600;state.east+=Math.sin(state.motionHeading*RAD)*km;state.north+=Math.cos(state.motionHeading*RAD)*km;}}
     target=sampleField();
@@ -494,9 +495,9 @@
     }));
     mapController.bind();
 
-    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar';
-    view.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
-    view.addEventListener('pointermove',e=>{
+    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom';
+    view.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
+    view.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;
       if(fullscreenActive()&&e.pointerType==='mouse'){
         if(!mouseLookEnabled)return;
         const sensitivity=.12/Math.sqrt(Math.max(.5,state.zoom));
@@ -514,6 +515,14 @@
     view.addEventListener('pointerleave',()=>{hoverPointer=null;edgePan={x:0,y:0};});
     const release=()=>{dragging=null;view.classList.remove('dragging');};view.addEventListener('pointerup',release);view.addEventListener('pointercancel',release);
     view.addEventListener('wheel',e=>{if(e.target.closest(cameraUi)||e.ctrlKey)return;e.preventDefault();const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?view.clientHeight:1);state.zoom=clamp(state.zoom*Math.exp(-clamp(delta,-200,200)*.0025),ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();},{passive:false});
+    let touchBaseline;
+    TouchControls.bindGesture(view,{
+      start:s=>{touchBaseline={...s,yaw:state.yaw,pitch:state.pitch,zoom:state.zoom};view.focus({preventScroll:true});},
+      move:s=>{const b=touchBaseline;if(!b)return;if(s.count>1){state.zoom=clamp(b.zoom*s.distance/Math.max(1,b.distance),ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();}else turnView(b.yaw-(s.x-b.x)*.18/Math.sqrt(Math.max(.5,state.zoom)),b.pitch+(s.y-b.y)*.14/Math.sqrt(Math.max(.5,state.zoom)));},
+      end:()=>touchBaseline=null
+    },e=>!!e.target.closest(cameraUi));
+    document.querySelectorAll('[data-flight]').forEach(b=>touchReleases.push(TouchControls.hold(b,b.dataset.flight,touchFlightKeys)));
+    for(const [id,factor] of [['viewZoomIn',1.3],['viewZoomOut',1/1.3]])$(id).onclick=()=>{state.zoom=clamp(state.zoom*factor,ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();};
     const flightCodes=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyC','Space','ShiftLeft','ShiftRight']);
     view.addEventListener('keydown',e=>{if(e.target!==view||document.querySelector('dialog[open]'))return;if(state.freeCamera&&flightCodes.has(e.code)){e.preventDefault();flightKeys.add(e.code);return;}const move={ArrowLeft:[-1.5,0],ArrowRight:[1.5,0],ArrowUp:[0,1.5],ArrowDown:[0,-1.5]}[e.key];if(!move)return;e.preventDefault();turnView(state.yaw+move[0]/Math.sqrt(state.zoom),state.pitch+move[1]/Math.sqrt(state.zoom));});
     document.addEventListener('keyup',e=>flightKeys.delete(e.code));window.addEventListener('blur',()=>flightKeys.clear());view.addEventListener('blur',()=>flightKeys.clear(),true);
@@ -524,7 +533,7 @@
     $('homeView').onclick=()=>{state.yaw=8;state.pitch=-1.5;if(state.freeCamera){const p=currentSite();state.freeX=p.x;state.freeY=p.ground+state.floor*3;state.freeZ=p.z;}updateCamera();drawMap();};
     const syncMouseLook=()=>{const locked=document.pointerLockElement===view;$('mouseLookButton').setAttribute('aria-pressed',String(mouseLookEnabled));$('mouseLookButton').textContent=mouseLookEnabled?'环视开启 · M 关闭':'鼠标自由 · M 环视';$('mouseLookButton').title=mouseLookEnabled?(locked?'M 释放鼠标以操作地图和控件；Esc 也可释放':'当前浏览器使用边缘连续环视：移到画面边缘持续转动；M 关闭'):'按 M 开启无限鼠标环视';};
     const releaseMouseLook=()=>{mouseLookEnabled=false;hoverPointer=null;edgePan={x:0,y:0};if(document.pointerLockElement===view)document.exitPointerLock();syncMouseLook();};
-    const startMouseLook=async()=>{if(!fullscreenActive())return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
+    const startMouseLook=async()=>{if(!fullscreenActive()||matchMedia("(pointer:coarse)").matches)return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
     const toggleMouseLook=()=>{if(document.pointerLockElement===view||mouseLookEnabled)releaseMouseLook();else startMouseLook();};
     $('mouseLookButton').onclick=toggleMouseLook;
     document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===view;if(hadPointerLock&&!locked)mouseLookEnabled=false;hadPointerLock=locked;hoverPointer=null;edgePan={x:0,y:0};flightKeys.clear();syncMouseLook();});
@@ -544,7 +553,7 @@
     };
     $('aboutButton').onclick=()=>$('about').showModal();$('about').addEventListener('click',e=>{if(e.target===$('about')){const r=$('about').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('about').close();}});
     $('restoreButton').onclick=()=>{if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();lastShadowTime=-1;updateReadings();};
-    $('resetButton').onclick=()=>{const sound=state.sound;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
+    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
 
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
     document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});

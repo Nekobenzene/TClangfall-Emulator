@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10191d">
   <title>临海 · 台风视场模拟器</title>
   <style>/* STYLE */</style>
@@ -19,7 +19,9 @@
         <div class="window-surround" aria-hidden="true"><div class="sill"></div></div>
       <div class="view-top"><div class="location-label"><span class="live-dot"></span><span id="locationName">海岸公寓 / 6F</span><small id="heightLabel">视点高度 18 m</small></div><span id="regionTag" class="region-tag">核心眼墙</span></div>
         <div class="camera-toolbar" aria-label="视角与望远镜"><button id="freeCameraButton" aria-pressed="false">上帝视角</button><button id="overviewButton" title="切换自由飞行并俯瞰海岸楼群">俯瞰楼群</button><button id="zoomReset" title="滚轮：0.35 倍广角至 12 倍望远镜，点击恢复 1 倍"><output id="zoomValue">1.0×</output> <small>复位</small></button><button id="clearFogButton" aria-pressed="false" title="仅提高渲染能见度，保留雨丝和运动白色雾带；气象能见度读数不变">去除雨雾</button><button id="mouseLookButton" aria-pressed="false" title="M 切换无限鼠标环视">鼠标自由 · M 环视</button></div>
-        <div id="flightHint" class="flight-hint" hidden>WASD 水平移动 · Q / E 降 / 升 · Shift 4 倍加速 · 全屏 M 切换环视</div>
+        <div class="touch-zoom" aria-label="触屏视野缩放"><button id="viewZoomOut" aria-label="缩小视野倍率">−</button><button id="viewZoomIn" aria-label="放大视野倍率">＋</button></div>
+<div class="touch-flight" aria-label="自由飞行触屏控制"><div class="flight-pad"><button data-flight="KeyW" aria-label="向前移动">↑</button><button data-flight="KeyA" aria-label="向左移动">←</button><button data-flight="KeyS" aria-label="向后移动">↓</button><button data-flight="KeyD" aria-label="向右移动">→</button></div><div class="flight-height"><button data-flight="KeyE" aria-label="上升">升</button><button data-flight="KeyQ" aria-label="下降">降</button></div></div>
+<div id="flightHint" class="flight-hint" hidden>WASD 水平移动 · Q / E 降 / 升 · Shift 4 倍加速 · 全屏 M 切换环视</div>
         <div class="view-bottom"><div class="heading-readout"><span id="heading">013°</span><span id="headingDir">NNE</span><small>视线方位</small></div><div class="view-buttons"><button id="homeView" title="视角归中" aria-label="视角归中">归中</button><button id="restoreButton" title="恢复风毁场景，保留台风与水位">恢复</button><button id="fullscreen" title="全屏观测">全屏</button></div></div>
         <div class="fs-hud" id="fsHud">
           <details class="hud-settings"><summary>观测显示</summary><label><input id="hudWindVisible" type="checkbox" checked> 风速风向</label><label><input id="hudRainVisible" type="checkbox" checked> 雨量</label><label><input id="hudWaterVisible" type="checkbox" checked> 水面上升</label><label><input id="hudMapVisible" type="checkbox" checked> 小地图</label><label><input id="hudMapField" type="checkbox" checked> 地图风速着色</label></details>

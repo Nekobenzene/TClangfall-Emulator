@@ -21,3 +21,41 @@
 #mouseLookButton{display:none}.view:fullscreen #mouseLookButton,.view.is-fullscreen #mouseLookButton{display:inline-block}
 
 .scene-caption{flex-wrap:wrap;gap:6px 16px}#eyeWallReadout{font-size:10px;color:#a9c4c9}#eyeWallReadout[hidden]{display:none}
+/* Touch layouts retain the same weather simulation and optical zoom. */
+.touch-flight,.touch-zoom{display:none}
+@media(max-width:1000px),(pointer:coarse){
+ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+ button,summary{min-height:44px}button{touch-action:manipulation}
+ input:not([type=range]):not([type=checkbox]):not([type=color]),select,textarea{font-size:16px!important;min-height:40px;max-width:100%}
+ input[type=checkbox]{width:19px;height:19px;flex-shrink:0}
+ input[type=range]{min-height:32px;touch-action:pan-y}input[type=range]::-webkit-slider-thumb{width:21px;height:21px}
+ .workspace{display:block}.workspace,.observation,.controls,.control-group{min-width:0}.controls{display:block;margin-top:16px}
+ .topbar{height:auto;min-height:67px;padding:12px;gap:8px}.brand h1{font-size:21px}.brand h1 span{font-size:11px}.top-actions{gap:4px}.top-actions .offline{display:none}.top-actions button{padding:8px;font-size:12px}
+ .view{height:56dvh;min-height:410px}.view-top{top:16px;left:16px;right:16px;gap:6px}.location-label{flex-wrap:wrap;gap:5px}.location-label small{font-size:10px}.region-tag{white-space:nowrap;font-size:10px}
+ .camera-toolbar{top:58px;left:16px;right:16px;max-width:none;display:flex;flex-wrap:wrap;gap:5px}.camera-toolbar button{font-size:11px;padding:7px 9px;min-height:44px}
+ .view-bottom{left:16px;right:16px;bottom:16px;gap:6px}.view-buttons{gap:5px}.view-buttons button{min-width:44px;font-size:12px;padding:7px}.heading-readout small{display:none}
+ .touch-zoom{display:flex;position:absolute;right:16px;top:162px;z-index:8;gap:4px}.touch-zoom button{min-width:44px;font-size:22px;background:#14262cda;border:1px solid #8caaa65c;color:#e0ede8;border-radius:5px}
+ .flight-hint{display:none!important}.touch-flight{position:absolute;bottom:76px;left:16px;z-index:9;gap:9px;align-items:flex-end;touch-action:none}.free-camera .touch-flight{display:flex}
+ .touch-flight button{width:44px;height:44px;padding:0;font-size:20px;background:#14262cda;border:1px solid #8caaa65c;border-radius:5px;color:#e0ede8;touch-action:none;user-select:none;-webkit-user-select:none}.touch-flight button.held{background:#497b75;color:white}
+ .flight-pad{display:grid;grid-template-columns:repeat(3,44px);gap:4px}.flight-pad button:first-child{grid-column:2}.flight-pad button:nth-child(2){grid-column:1}.flight-height{display:grid;gap:4px}.flight-height button{font-size:14px}
+ .control-group>summary,.controls label,.control-heading{font-size:13px}.controls .hint,.controls .section-note{font-size:11px;line-height:1.6}.observer-controls{flex-wrap:wrap}.observer-controls label{font-size:12px}.observer-controls select{min-width:0}.observation-bottom{flex-wrap:wrap;gap:8px}.observation-bottom>span{width:100%;font-size:12px}.readings .metric-label{font-size:12px}
+ .view:fullscreen,.view.is-fullscreen{height:100dvh!important;min-height:0!important;width:100%;padding:0}
+ .view:fullscreen .view-top,.view.is-fullscreen .view-top{top:max(12px,env(safe-area-inset-top));left:12px;right:12px}
+ .view:fullscreen .camera-toolbar,.view.is-fullscreen .camera-toolbar{top:64px;left:12px;right:12px}
+ .view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{top:164px;right:12px}
+ .view:fullscreen .view-bottom,.view.is-fullscreen .view-bottom{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom))}
+ .view:fullscreen .touch-flight,.view.is-fullscreen .touch-flight{left:12px;bottom:max(74px,calc(env(safe-area-inset-bottom) + 62px))}
+ .view:fullscreen .hud-settings,.view.is-fullscreen .hud-settings{top:114px;left:12px;right:auto;z-index:15;max-width:210px}.hud-settings summary{display:flex;align-items:center}.hud-settings label{min-height:36px}
+ .view:fullscreen .hud-metrics,.view.is-fullscreen .hud-metrics{top:220px;left:12px;right:12px;display:flex;gap:5px;flex-wrap:wrap;pointer-events:none}.hud-metrics>div{min-width:0;flex:1;padding:7px}.hud-metrics b{font-size:18px}.hud-metrics select{pointer-events:auto;min-height:32px;font-size:12px!important}.hud-metrics small{font-size:10px}
+ .view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{right:12px;bottom:74px;width:158px}.hud-map-wrap canvas{height:126px}.hud-map-wrap>div{flex-wrap:wrap}.hud-map-wrap>div>span{width:100%;font-size:10px}.hud-map-wrap button{min-width:38px;min-height:38px}.hud-map-wrap>small{display:none}.hud-storm-toggle{font-size:10px;min-height:34px;padding:4px}
+ .large-map-dialog,.palette-dialog{max-height:calc(100dvh - 16px);overflow:auto}.palette-node{grid-template-columns:64px 36px minmax(65px,1fr) 44px;gap:5px}.palette-node input{width:100%;min-width:0}.large-map-tools{flex-wrap:wrap}.large-map-dialog button{min-width:44px}
+}
+@media(max-width:370px){.camera-toolbar{gap:3px}.camera-toolbar button{font-size:10px;padding:6px}.view-top .location-label small{display:none}.free-camera .touch-flight{gap:5px;left:10px}.hud-map-wrap{max-width:144px}.touch-flight button{width:40px}.flight-pad{grid-template-columns:repeat(3,40px);gap:3px}.flight-height{gap:3px}}
+@media(max-height:500px) and (max-width:1000px){
+ .view{height:90dvh;min-height:330px}.camera-toolbar{top:48px;right:200px}.touch-zoom{top:106px}.view:fullscreen .camera-toolbar,.view.is-fullscreen .camera-toolbar{top:48px;right:210px}.view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{top:106px;right:190px}
+ .view:fullscreen .hud-settings,.view.is-fullscreen .hud-settings{top:10px;left:auto;right:12px}.view:fullscreen .hud-metrics,.view.is-fullscreen .hud-metrics{top:105px;left:220px;right:190px}.view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{bottom:66px}.hud-metrics b{font-size:15px}.hud-metrics>div{padding:5px}.hud-map-wrap canvas{height:100px}
+}
+@media(max-width:370px){.view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{width:124px}.hud-map-wrap canvas{height:105px}.hud-map-wrap button{min-width:32px;padding:3px}}
+@media(max-height:500px) and (max-width:1000px){.view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{left:12px;right:auto}.view:fullscreen .view-top,.view.is-fullscreen .view-top{right:200px}}
+
+@media(pointer:coarse){.camera-toolbar #mouseLookButton{display:none!important}}
