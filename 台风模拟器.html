@@ -61,14 +61,25 @@
 @media(max-width:370px){.view-top .location-label small{display:none}#view .view-bottom button{font-size:10px}#view .hud-metrics b{font-size:14px}}
 
 @media(max-width:1000px),(pointer:coarse){#view .hud-metrics>[hidden]{display:none!important}#view #hudDirection{display:inline;position:absolute;right:6px;bottom:7px;font:9px/1.1 sans-serif;max-width:47%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#view #hudWindPanel{position:relative}#view #hudWindValue{font-size:14px}}
+/* Calm default: fold all settings; keep live water and damage on one status row. */
+.settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;margin-bottom:12px;padding:10px 12px;text-align:left;font-size:12px;background:#1b2d32;border-color:#486067}.settings-toggle i{font:22px/1 Consolas,monospace;font-style:normal}
+.workspace.sidebar-collapsed{grid-template-columns:minmax(0,1fr) 40px;gap:18px}.sidebar-collapsed .controls>:not(.settings-toggle){display:none!important}.sidebar-collapsed .settings-toggle{writing-mode:vertical-rl;justify-content:flex-start;width:40px;min-height:136px;gap:20px;padding:14px 8px;margin:0;letter-spacing:2px}.sidebar-collapsed .settings-toggle i{transform:rotate(180deg)}
+.status-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px 24px}.status-row .sea-readout{gap:7px 18px;min-width:0}.status-row .sea-readout small{flex-basis:100%;margin:0;line-height:1.6}.status-row .damage-readout{display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin:0;padding:12px 3px 3px;max-width:310px;text-align:right;line-height:1.5}.status-row .damage-readout span{font-size:10px}.observation-bottom{justify-content:flex-end}
+@media(min-width:1001px) and (pointer:fine){.view{height:clamp(380px,calc(100dvh - 300px),880px)}}
+@media(max-width:1000px),(pointer:coarse){.workspace.sidebar-collapsed{display:block}.sidebar-collapsed .settings-toggle{writing-mode:horizontal-tb;width:100%;min-height:44px;justify-content:space-between;letter-spacing:0;padding:10px 12px}.sidebar-collapsed .settings-toggle i{transform:rotate(-90deg)}.status-row{grid-template-columns:1fr;gap:0}.status-row .damage-readout{flex-direction:row;align-items:baseline;flex-wrap:wrap;max-width:none;text-align:left;gap:5px 12px;padding-top:6px}}
+@media(max-width:600px){.top-actions #aboutButton{display:none}.top-actions #guideButton{font-size:11px}.brand h1 span{letter-spacing:0}}
+.usage-guide{width:min(680px,calc(100vw - 24px));max-width:680px;max-height:calc(100dvh - 24px);overflow:auto;padding:24px}.guide-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.guide-heading small{font-size:10px;letter-spacing:2px;color:#a4bfb7}.guide-heading h2{margin:5px 0 0;font-size:25px;font-weight:500}.guide-heading button,.guide-footer button{font-size:11px;min-height:38px}.usage-guide .guide-intro{font-size:12px;line-height:1.8;margin:16px 0;color:#b8cccf}.guide-diagram{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:10px;border-block:1px solid #526c6b66;padding:16px 0}.guide-diagram>span{font-size:12px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}.guide-diagram i{font:26px/1 monospace;font-style:normal;color:#c1d8c9}.guide-diagram small{font-size:10px;color:#90aaad;line-height:1.5}.guide-diagram b{color:#809d9d;font-size:16px;font-weight:400}.guide-start{width:100%;display:flex;justify-content:space-between;align-items:center;margin:18px 0 12px;padding:12px;background:#304c42;border-color:#8ba797;color:#e2eee6;font-size:13px;min-height:48px}.guide-start span{font-size:10px;color:#b8d0c1}.guide-chapters{display:grid;grid-template-columns:1fr 1fr;gap:6px}.guide-chapters button{text-align:left;background:transparent;font-size:12px;padding:11px;min-height:42px}.guide-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;color:#89a4a8;font-size:10px;line-height:1.7}
+.guide-tour{position:fixed;inset:0;z-index:1600;pointer-events:none}.guide-tour[hidden]{display:none}.guide-spotlight{position:fixed;border:2px solid #c0dfb7;border-radius:8px;box-shadow:0 0 0 4px #244c3b55;pointer-events:none}.guide-card{position:fixed;pointer-events:auto;width:min(340px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;background:#182e33f7;color:#e5eeea;border:1px solid #88a69c;border-radius:9px;box-shadow:0 10px 34px #08161880;padding:16px}.guide-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px}.guide-card small{font:10px Consolas,monospace;color:#a8c9b6}.guide-card h2{font-size:18px;font-weight:500;margin:9px 0}.guide-card p{font-size:12px;line-height:1.8;margin:0 0 14px;color:#c1d3d3}.guide-card button{font-size:11px;min-height:38px;padding:7px 10px}.guide-card nav{display:flex;justify-content:space-between;gap:10px}.guide-card nav button:last-child{background:#365b49;border-color:#8aa795;color:#e2f0e4}.guide-card button:disabled{opacity:.4;cursor:default}
+@media(max-width:600px){.usage-guide{padding:16px}.guide-diagram{gap:6px}.guide-diagram small{font-size:9px}.guide-chapters{grid-template-columns:1fr}.guide-heading h2{font-size:22px}.guide-start{font-size:12px}.guide-start span{font-size:9px}.guide-card{padding:12px}.guide-card button{min-height:44px}}
+@media(max-height:500px){.guide-card{width:min(310px,calc(100vw - 16px));padding:10px 12px}.guide-card h2{font-size:15px;margin:5px 0}.guide-card p{font-size:11px;line-height:1.6;margin-bottom:8px}.guide-card button{min-height:34px}.guide-chapters{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><span class="brandmark" aria-hidden="true">◎</span><div><h1>临海 <span>台风视场模拟器</span></h1><p>COASTAL OBSERVATORY</p></div></div>
-    <div class="top-actions"><span class="offline">离线场景</span><button id="aboutButton" class="quiet">模型说明</button><button id="resetButton" class="quiet">重置</button></div>
+    <div class="top-actions"><span class="offline">离线场景</span><button id="guideButton" class="quiet" aria-haspopup="dialog">使用指南</button><button id="aboutButton" class="quiet">模型说明</button><button id="resetButton" class="quiet">重置</button></div>
   </header>
-  <main class="workspace">
+  <main class="workspace sidebar-collapsed">
     <section class="observation" aria-label="住宅观测视场">
       <div id="view" class="view" tabindex="0" role="application" aria-label="三维观测视场，拖动环视，滚轮缩放；全屏 M 切换无限鼠标环视；上帝视角下 WASD 移动，Q E 升降，Shift 加速">
         <div id="sceneMount"></div><canvas id="glass" aria-hidden="true"></canvas>
@@ -93,16 +104,14 @@
         <div class="reading"><span class="metric-label">水平能见度</span><div><strong id="visibility">0.0</strong><span id="visibilityUnit" class="unit">km</span></div><small id="visibilityNote">雨幕遮蔽</small></div>
         <div class="reading"><span class="metric-label">风来向</span><div class="direction-line"><span id="windArrow">↑</span><strong id="windDirection">东南</strong></div><small id="windDegrees">135°</small></div>
       </div>
-      <div class="observation-bottom"><span id="viewHelp">拖动 / 方向键转动 · 主视窗滚轮望远镜缩放</span><button id="pauseButton" class="quiet" aria-pressed="false">暂停模拟</button><button id="soundButton" class="quiet" aria-pressed="false">开启风雨声</button></div>
-      <div class="sea-readout"><span>当前水面上升 <b id="surgeValue" title="相对常态水位的上升高度">+0.00 m</b></span><span>趋势 <b id="surgeTrend">平稳</b></span><span>雨量 <b id="rainValue">0 mm/h</b></span><small id="floodStage">海水未漫上步道 · 第一阶 0.25 m</small></div>
-      <div class="damage-readout"><b id="damageStatus">风毁 0 / 0</b><span id="survivalNote">按风速与累计受风时间计算耐受</span></div>
+      <div class="observation-bottom"><button id="pauseButton" class="quiet" aria-pressed="false">暂停模拟</button><button id="soundButton" class="quiet" aria-pressed="false">开启风雨声</button></div>
+      <div class="status-row"><div class="sea-readout"><span>当前水面上升 <b id="surgeValue" title="相对常态水位的上升高度">+0.00 m</b></span><span>趋势 <b id="surgeTrend">平稳</b></span><span>雨量 <b id="rainValue">0 mm/h</b></span><small id="floodStage">海水未漫上步道 · 第一阶 0.25 m</small></div>
+      <div class="damage-readout"><b id="damageStatus">风毁 0 / 0</b><span id="survivalNote">按风速与累计受风时间计算耐受</span></div></div>
       <div class="observer-controls"><label>观测楼房 <select id="buildingSelect" aria-label="选择观测楼房"></select></label><label>楼层 <input id="floorNumber" type="number" min="1" max="14" value="6" step="1" aria-label="观测楼层"> F</label><input id="floorRange" type="range" min="1" max="14" value="6" step="1" aria-label="观测楼层滑动条"><span id="floorHeight">18 m</span></div>
       <div id="flightSettings" class="flight-settings" hidden><label>飞行速度 <output id="flightSpeedValue">35 m/s</output><input id="flightSpeedRange" type="range" min="1" max="300" step="1" value="35" aria-label="自由飞行速度"></label><output id="flightPosition">E 0 / N 0 km · 海拔 18.9 m</output></div>
-      <div class="view-controls"><label>视线方位 <input id="yawRange" type="range" min="-75" max="95" value="8" step="1" aria-label="视线方位滑动条"></label><label>俯仰 <input id="pitchRange" type="range" min="-40" max="38" value="-1.5" step=".5" aria-label="视线俯仰滑动条"></label></div>
-      <div class="scene-caption"><span id="weatherDescription">正在读取风场…</span><span id="eyeWallReadout" hidden></span><span class="model-note">假想海岸 · 北半球</span></div>
     </section>
-    <aside class="controls" aria-label="台风模拟控制">
-      <details class="control-group map-section" open><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
+    <aside id="settingsPanel" class="controls" aria-label="台风模拟控制"><button id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel"><span>台风设置</span><i aria-hidden="true">‹</i></button>
+      <details class="control-group map-section"><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
         <div class="map-toolbar"><button id="smallWindField" aria-pressed="false" title="在小地图叠加持续风速着色与风矢量">风场显示</button><button id="mapCity">楼群</button><button id="mapHome">观测点</button><button id="mapFit">全风场</button></div><label class="map-mode-switch"><input id="stormDragToggle" type="checkbox"> 移动风暴中心</label>
         <div class="map-wrap"><canvas id="map" tabindex="0" role="application" aria-label="台风地图，默认拖动或方向键平移；开启移动风暴后才能设置中心。"></canvas><div class="map-zoom"><button id="zoomIn" title="放大地图" aria-label="放大地图">+</button><button id="zoomOut" title="缩小地图" aria-label="缩小地图">−</button></div><span class="north-mark">N ↑</span></div>
         <small id="smallFieldLegend" hidden>持续风 · kt　低风速 蓝 → 绿 → 黄 → 高风速 紫</small>
@@ -112,7 +121,7 @@
         <div class="coordinate-row"><span>中心相对观测点</span><span id="coordinates">E 28.0 / N 0.0 km</span></div>
         <details class="position-controls"><summary>精调中心位置（以海岸公寓为原点）</summary><div class="parameter-grid"><label>东向距离 <span><input id="east" type="number" min="-10000" max="10000" value="22.4" step=".1"> km</span></label><input id="eastRange" type="range" min="-1600" max="1600" value="22.4" step=".1" aria-label="台风中心东向距离滑动条"><label>北向距离 <span><input id="north" type="number" min="-10000" max="10000" value="16.8" step=".1"> km</span></label><input id="northRange" type="range" min="-1600" max="1600" value="16.8" step=".1" aria-label="台风中心北向距离滑动条"></div></details>
       </details>
-      <details class="control-group intensity-section" open><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
+      <details class="control-group intensity-section"><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
         <input id="intensity" class="range" type="range" min="20" max="200" step="1" value="110" aria-label="调整台风最大一分钟持续风速">
 
         <p id="thresholdNote" class="structure-note">67 kt 起风眼与眼墙连续发展，34 kt 起具有暴风圈。</p>
@@ -126,6 +135,7 @@
     </aside>
   </main>
   <dialog id="largeMapDialog" class="large-map-dialog" aria-labelledby="largeMapTitle"><div class="section-heading"><h2 id="largeMapTitle">实时持续风场 <small>1 min · kt</small></h2><button id="closeLargeMap" aria-label="关闭大地图">关闭 ×</button></div><div class="large-map-tools"><label class="map-mode-switch"><input id="showWindField" type="checkbox" checked> 显示持续风场</label><label class="map-mode-switch"><input id="largeStormDragToggle" type="checkbox"> 移动风暴中心</label><button id="largeMapCity">查看楼群</button><button id="largeMapFit">全风场</button><button id="largeOpenPalette" aria-haspopup="dialog">风场色标</button><output id="largeMapWidth">360 km</output></div><div class="large-map-surface"><canvas id="largeMap" tabindex="0" role="application" aria-label="实时持续风场大地图"></canvas><div class="map-zoom"><button id="largeZoomIn" aria-label="放大大地图">+</button><button id="largeZoomOut" aria-label="缩小大地图">−</button></div><span id="fieldProbe">拖动平移，悬停查看此处持续风；点击楼房切换观测点。</span></div><div class="field-colorbar"><span>0</span><span>34</span><span>67</span><span>100</span><span>140</span><span>200 kt</span></div><div class="large-map-footer"><label>地图范围 <input id="largeExtentRange" type="range" min="0" max="1000" step="1" value="770" aria-label="大地图范围，对数缩放"></label><div id="mapSiteChoices" class="site-choices" aria-label="地图观测楼房"></div></div></dialog>
+  <dialog id="usageGuide" class="usage-guide" aria-labelledby="guideTitle"><header class="guide-heading"><div><small>从观测到控制</small><h2 id="guideTitle">使用指南</h2></div><button id="closeGuide" aria-label="关闭使用指南">关闭 ×</button></header><p class="guide-intro">先看风雨，再改变风暴。交互引导会带你找到对应控件，可以边操作边阅读。</p><div class="guide-diagram" aria-label="操作流程：观察视场，定位台风，调节风雨"><span><i aria-hidden="true">◉</i>观察视场<small>转动 · 缩放 · 换楼层</small></span><b aria-hidden="true">→</b><span><i aria-hidden="true">◎</i>定位台风<small>地图 · 风圈 · 观测点</small></span><b aria-hidden="true">→</b><span><i aria-hidden="true">≋</i>调节风雨<small>强度 · 移动 · 时间</small></span></div><button id="startGuide" class="guide-start">开始交互引导 <span>约 2 分钟 · 8 步</span></button><div id="guideChapters" class="guide-chapters" aria-label="按主题查看指引"></div><footer class="guide-footer"><span>随时点顶部“使用指南”重新打开。</span><button id="guideModelNotes">模型与限制</button></footer></dialog>
   <dialog id="about"><form method="dialog"><div class="section-heading"><h2>风场与操作说明</h2><button class="quiet" aria-label="关闭说明">关闭 ×</button></div>
 <p>“去除雨雾”仅提高视觉通透度，保留雨丝与运动白色雾带，气象能见度读数不变。全屏默认锁定鼠标，移动鼠标即可无限环视，不受屏幕边缘限制；按 M 切换环视开关，关闭后可操作地图与控件，Esc 也可释放鼠标。若浏览器不支持鼠标锁定，则在画面边缘持续转动，仍可无限环绕；小地图可开启“拖动风暴中心”，开关与其他地图同步。滚轮支持 0.35–12 倍：最广垂直视场约 115°，附轻微桶形畸变与暗角。晴空 / 低降水有蓝天漫射、暖色阳光、地面反弹光与建筑树木投影；海面具有天空反射、视角相关水色和太阳碎光。</p>
 <p>主视窗滚轮提供 0.35–12 倍望远镜缩放，点击倍率复位；高倍率下拖动更精细。“上帝视角”从当前位置进入自由飞行：点击视窗后 WASD 前后左右，WASD 始终沿水平面移动；Q/E 或 C/空格垂直升降，Shift 四倍加速，拖动可 360° 环视，俯仰范围 ±89°。飞行速度在视窗下方调节为 1–300 m/s，不受建筑、地面或高度限制，天气暂停时仍可飞行。风雨读数与地图视点跟随实际位置；“俯瞰楼群”进入海岸上空，“返回楼房”或重新选楼回到楼层视点，“归中”回到所选楼房位置。场景扩展内陆和南侧楼群，包含棕榈、阔叶树、层叠针叶树、窄冠树、长椅、花池及更多车辆。五座海边轻型棚屋在超过 120 kt 后累计受损，屋顶可被掀起、墙板倒伏，点击“恢复”重建。中低风速雨丝下落速度约 32 m/s，可见雨丝显著加密；强风下仍逐步转为横行碎雾。</p>
@@ -447,6 +457,60 @@ const MobileView=(()=>{
  return{bind};
 })();
 
+/* Non-destructive, replayable guide: reveal real controls without changing weather. */
+const UsageGuide=(()=>{
+ function bind(){
+  const $=id=>document.getElementById(id),workspace=document.querySelector('.workspace'),sidebar=$('settingsPanel'),toggle=$('settingsToggle'),dialog=$('usageGuide');
+  const mobile=()=>matchMedia('(pointer:coarse)').matches||innerWidth<=1000;
+  const setSidebar=open=>{workspace.classList.toggle('sidebar-collapsed',!open);toggle.setAttribute('aria-expanded',String(open));toggle.querySelector('span').textContent=open?'收起设置':'台风设置';};
+  toggle.onclick=()=>setSidebar(workspace.classList.contains('sidebar-collapsed'));
+  const steps=[
+   {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“台风设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“台风设置”展开参数。'},
+   {title:'换楼房与楼层',target:'.observer-controls',text:()=> '选择一座观测楼房，再拖动楼层滑条或输入楼层。不同地点和高度有不同的视野；自由飞行时先返回楼房，才能调节楼层。'},
+   {title:'在地图定位风暴',target:'.map-section',group:'.map-section',text:()=> '地图默认拖动平移，双指或滚轮缩放。先开启“移动风暴中心”，再点击或拖动设置中心；关掉开关后恢复平移。“楼群”可定位观测楼房。'},
+   {title:'独立调节风与雨',target:'.intensity-section',group:'.intensity-section',text:()=> '台风强度表示最大一分钟持续风，观测点读数还取决于距中心的位置。“独立雨强”可单独调节；风圈大小在“风圈结构”中设置。'},
+   {title:'让风暴移动',target:'.motion-section',group:'.motion-section',text:()=> '转盘设置移动去向，速度使用 kt。点击“开始推进中心”才会移动；时间倍率同时影响推进、阵雨阵风、风毁和风暴潮。暂停按钮可冻结天气。'},
+   {title:'自由飞行与去雾',target:'#sceneToolbar',camera:true,text:()=>mobile()?'点“上帝视角”进入自由飞行，用左侧摇杆水平移动，右侧“升 / 降”调高度。视角面板也有缩放、去雾、归中和恢复。':'点“上帝视角”后，在视窗内用 WASD 水平移动、Q/E 升降，Shift 加速。“去除雨雾”只改善画面通透度，不改变气象读数。'},
+   {title:'水位与风毁',target:'.status-row',text:()=> '水位、雨量在左，风毁数量和剩余坚持时间在右。损坏随风速和受风时间积累；“恢复”修复景物并重新计时，顶部“重置”会复位全部设置。'},
+   {title:'全屏观测',target:'#fullscreen',text:()=>mobile()?'全屏中可单独开关读数和地图。“净览”隐藏覆盖层，仅留“显示”按钮恢复；退出全屏后随时从顶部重开使用指南。':'点“全屏”专注观测。引导期间保留自由鼠标，完成后按 M 开关环视，Esc 释放鼠标。全屏菜单可选择读数和地图。'}
+  ];
+  const tour=document.createElement('div');tour.className='guide-tour';tour.hidden=true;tour.innerHTML='<div class="guide-spotlight" aria-hidden="true"></div><section class="guide-card" role="region" aria-label="交互式上手引导" tabindex="-1"><header><small id="guideProgress"></small><button id="endTour" aria-label="结束上手引导">结束 ×</button></header><h2 id="guideStepTitle"></h2><p id="guideStepText" aria-live="polite"></p><nav aria-label="引导步骤"><button id="previousGuideStep">上一步</button><button id="nextGuideStep">下一步 →</button></nav></section>';
+  document.body.append(tour);const card=tour.querySelector('.guide-card'),spot=tour.querySelector('.guide-spotlight');let index=0,snapshot=null,target=null,raf=0;
+  function position(){
+   if(tour.hidden||!target)return;const r=target.getBoundingClientRect(),w=innerWidth,h=innerHeight,pad=8,visible=r.bottom>0&&r.top<h;
+   spot.hidden=!visible;Object.assign(spot.style,{left:Math.max(4,r.left-4)+'px',top:Math.max(4,r.top-4)+'px',width:Math.max(4,Math.min(w-4,r.right+4)-Math.max(4,r.left-4))+'px',height:Math.max(4,Math.min(h-4,r.bottom+4)-Math.max(4,r.top-4))+'px'});
+   const cw=card.offsetWidth,ch=card.offsetHeight,candidates=[{x:w-cw-pad,y:h-ch-pad},{x:pad,y:h-ch-pad},{x:w-cw-pad,y:pad},{x:pad,y:pad}];
+   const overlap=c=>Math.max(0,Math.min(c.x+cw,r.right)-Math.max(c.x,r.left))*Math.max(0,Math.min(c.y+ch,r.bottom)-Math.max(c.y,r.top));candidates.sort((a,b)=>overlap(a)-overlap(b));Object.assign(card.style,{left:Math.max(pad,candidates[0].x)+'px',top:Math.max(pad,candidates[0].y)+'px'});
+  }
+  const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(position);};
+  function finish(restoreFocus=true){
+   if(!snapshot)return;tour.hidden=true;setSidebar(snapshot.open);snapshot.details.forEach(([el,open])=>el.open=open);
+   $('view').classList.toggle('controls-open',snapshot.cameraOpen);$('sceneControlsToggle').setAttribute('aria-expanded',String(snapshot.cameraOpen));
+   $('view').classList.toggle('clean-view',snapshot.clean);$('sceneCleanToggle').setAttribute('aria-pressed',String(snapshot.clean));$('sceneCleanToggle').textContent=snapshot.clean?'显示':'净览';
+   window.scrollTo(snapshot.x,snapshot.y);if(restoreFocus)$('guideButton').focus({preventScroll:true});snapshot=null;target=null;
+  }
+  function showStep(next){
+   index=Math.max(0,Math.min(steps.length-1,next));const step=steps[index];
+   $('view').classList.remove('clean-view');$('sceneCleanToggle').setAttribute('aria-pressed','false');$('sceneCleanToggle').textContent='净览';
+   if(step.group){setSidebar(true);document.querySelector(step.group).open=true;}
+   if(mobile()){$('view').classList.toggle('controls-open',!!step.camera);$('sceneControlsToggle').setAttribute('aria-expanded',String(!!step.camera));}
+   target=document.querySelector(step.target);$('guideProgress').textContent=`上手引导 ${index+1} / ${steps.length}`;$('guideStepTitle').textContent=step.title;$('guideStepText').textContent=step.text();$('previousGuideStep').disabled=index===0;$('nextGuideStep').textContent=index===steps.length-1?'完成引导':'下一步 →';
+   tour.hidden=false;target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});position();schedule();
+  }
+  function start(step=0){
+   if(snapshot)finish(false);snapshot={open:!workspace.classList.contains('sidebar-collapsed'),details:[...sidebar.querySelectorAll('details')].map(el=>[el,el.open]),cameraOpen:$('view').classList.contains('controls-open'),clean:$('view').classList.contains('clean-view'),x:scrollX,y:scrollY};
+   (document.fullscreenElement||document.body).append(tour);
+   if(dialog.open)dialog.close();showStep(step);card.focus({preventScroll:true});
+  }
+  $('guideButton').onclick=()=>{finish(false);dialog.showModal();};$('closeGuide').onclick=()=>dialog.close();$('startGuide').onclick=()=>start();$('guideModelNotes').onclick=()=>{dialog.close();$('aboutButton').click();};
+  steps.forEach((step,i)=>{const button=document.createElement('button');button.type='button';button.textContent=String(i+1).padStart(2,'0')+'　'+step.title;button.onclick=()=>start(i);$('guideChapters').append(button);});
+  $('previousGuideStep').onclick=()=>showStep(index-1);$('nextGuideStep').onclick=()=>index===steps.length-1?finish():showStep(index+1);$('endTour').onclick=()=>finish();
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&snapshot){e.preventDefault();finish();}});window.addEventListener('scroll',schedule,true);window.addEventListener('resize',schedule);
+  document.addEventListener('fullscreenchange',()=>{if(snapshot){(document.fullscreenElement||document.body).append(tour);schedule();}});
+ }
+ return{bind};
+})();
+
 /* Display-only optics and daylight; never changes meteorological observations. */
 const ViewAtmosphere=(()=>{
   const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -574,6 +638,7 @@ function createStormMap({canvas,state,getTarget,getCamera,getObserver,onChange,o
     for(let y=35;y<d.h;y+=76)for(let x=35;x<d.w;x+=76){const e=state.mapEast+(x-d.w/2)/d.s,n=state.mapNorth-(y-d.h/2)/d.s,w=M.meanWind(state.east-e,state.north-n,state.intensity,t,phase);if(w.sustained<2)continue;const a=Math.atan2(-w.vn,w.ve);c.save();c.translate(x,y);c.rotate(a);c.beginPath();c.moveTo(-7,0);c.lineTo(7,0);c.lineTo(3,-3);c.moveTo(7,0);c.lineTo(3,3);c.stroke();c.restore();}
   }
   function drawOne(el,now,force){
+    if(!el.getBoundingClientRect().width||!el.getBoundingClientRect().height)return;
     const d=setup(el),{w,h,s,c}=d;if(!w||!h)return;
     const t=getTarget(),observer=site(),isBig=el===big,X=e=>w/2+(e-state.mapEast)*s,Y=n=>h/2-(n-state.mapNorth)*s;
     el.setAttribute('aria-label',`${isBig?'大':'小'}地图，宽 ${format(state.extent*2)}；${state.mapMode==='set'?'移动风暴已开启':'拖动平移，点击楼房选择观测点'}。`);
@@ -1081,10 +1146,8 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     $('freeCameraButton').setAttribute('aria-pressed',String(free));$('freeCameraButton').textContent=free?'返回楼房':'上帝视角';
     $('flightHint').hidden=!free;$('flightSettings').hidden=!free;
     for(const id of ['floorNumber','floorRange'])$(id).disabled=free;
-    $('yawRange').min=free||fullscreenActive()?-180:-75;$('yawRange').max=free||fullscreenActive()?180:95;$('pitchRange').min=free?-89:-40;$('pitchRange').max=free?89:38;
     $('flightSpeedRange').value=state.flightSpeed;$('flightSpeedValue').textContent=state.flightSpeed+' m/s';
     $('clearFogButton').setAttribute('aria-pressed',String(state.clearFog));
-    $('viewHelp').textContent=mobileControls()?'单指拖动环视 · 双指缩放 · 上帝视角按住方向键飞行':fullscreenActive()?'M 切换鼠标环视 / 操作控件 · 滚轮缩放':free?'点击视窗后 WASD 水平移动 · Q/E 升降 · Shift 加速 · 拖动环视':'拖动 / 方向键转动 · 主视窗滚轮望远镜缩放';
   }
   function turnView(yaw,pitch){state.yaw=state.freeCamera||fullscreenActive()?ObserverCamera.bearing(yaw):clamp(yaw,-75,95);state.pitch=clamp(pitch,state.freeCamera?-89:-40,state.freeCamera?89:38);updateCamera();}
   let seed = 4512;
@@ -1102,7 +1165,6 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     const side={danger:'危险半圆 · 右侧增强',safe:'安全半圆 · 左侧较弱',none:'静止 · 对称风场'}[target.semicircle];
     $('semicircleLabel').textContent=side;
     $('flowText').textContent=target.region==='clear'?'下沉晴空 · 仍有弱阵风':target.region==='outer'?'外围雨带 · 风雨部分错峰':target.region==='storm'?'暴风圈 · 稳定持续风雨':side;
-    $('weatherDescription').textContent=target.region==='clear'?'外围影响圈外：下沉晴空与弱阵风，出现概率在边界连续接续。':target.region==='core'?'低压中心仍减风，但无风眼、眼墙或暴风圈，中心仍可持续降雨。':target.sunshine>.7?(target.region==='eye'?(state.intensity>=190?'极强台风风眼：晴空与阳光，眼内低中云已清空。':'晴空风眼：云隙逐渐扩大，仍有低层与中层云。'):'雨带间隙：云层暂开，阵雨可能返回。'):target.region==='eye'?'风眼向眼墙平缓过渡，雨强可独立调节。':target.region==='wall'?'眼墙交接处风速陡增，强风雨时天空纹理淡出并与雾色融合。':target.region==='storm'?(target.hasEye?'暴风圈内风雨稳定、缓增，至眼墙陡增。':'无眼与眼墙的宽峰风场，中心减风但保留降雨。'):'外围向内阵雨阵风更频繁，波动幅度向内减小；极端暴雨较罕见。';
     $('motionReadout').textContent=state.motionSpeed?state.motionHeading+'° / '+state.motionSpeed+' kt':'静止';
     const sec=Math.floor(state.simTime);$('simClock').textContent='模拟经过 '+Math.floor(sec/3600).toString().padStart(2,'0')+':'+Math.floor(sec%3600/60).toString().padStart(2,'0')+':'+(sec%60).toString().padStart(2,'0');
   }
@@ -1361,7 +1423,6 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     const heading=(state.yaw+360)%360;
     $('heading').textContent=String(Math.round(heading)%360).padStart(3,'0')+'°';
     $('headingDir').textContent=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(heading/22.5)%16];
-    $('yawRange').value=state.yaw;$('pitchRange').value=state.pitch;
   }
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
@@ -1474,7 +1535,6 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
   }
   function updateReadings() {
     updateLocationText();
-    $('eyeWallReadout').hidden=!eyeViewState.visible;$('eyeWallReadout').textContent=eyeViewState.visible?'眼墙内缘 '+state.eyeRadius+' km · 外缘 '+state.wallRadius+' km · 云顶约 '+(eyeViewState.height/1000).toFixed(1)+' km':'';
     const ms=weather.ms,kt=weather.sustained,t=state.time;
     const gust=weather.gust;
     $('surgeValue').textContent='+'+surgeLevel.toFixed(2)+' m';
@@ -1529,7 +1589,6 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     for(const p of OBSERVATION_SITES){const option=document.createElement('option');option.value=p.id;option.textContent=p.name+' · 最高 '+p.maxFloor+'F';$('buildingSelect').appendChild(option);}
     $('buildingSelect').onchange=e=>selectSite(e.target.value);
     const floorChanged=el=>{state.floor=clamp(Math.round(Number(el.value)||1),1,currentSite().maxFloor);updateCamera();updateTarget();};$('floorRange').oninput=e=>floorChanged(e.target);$('floorNumber').onchange=e=>floorChanged(e.target);$('floorNumber').onkeydown=e=>{if(e.key==='Enter'){floorChanged(e.target);e.target.blur();}};
-    for(const id of ['yaw','pitch'])$(id+'Range').addEventListener('input',e=>{state[id]=Number(e.target.value);updateCamera();drawMap();});
     $('moveButton').onclick=()=>{state.advect=!state.advect;$('moveButton').textContent=state.advect?'暂停推进中心':'开始推进中心';$('moveButton').setAttribute('aria-pressed',String(state.advect));if(state.advect&&state.motionSpeed===0){state.motionSpeed=15;$('motionSpeed').value=15;updateTarget();}};
 
     document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1540,7 +1599,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     }));
     mapController.bind();
 
-    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls';
+    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls,.guide-card';
     view.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
     view.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;
       if(fullscreenActive()&&e.pointerType==='mouse'){
@@ -1580,7 +1639,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     $('homeView').onclick=()=>{state.yaw=8;state.pitch=-1.5;if(state.freeCamera){const p=currentSite();state.freeX=p.x;state.freeY=p.ground+state.floor*3;state.freeZ=p.z;}updateCamera();drawMap();};
     const syncMouseLook=()=>{const locked=document.pointerLockElement===view;$('mouseLookButton').setAttribute('aria-pressed',String(mouseLookEnabled));$('mouseLookButton').textContent=mouseLookEnabled?'环视开启 · M 关闭':'鼠标自由 · M 环视';$('mouseLookButton').title=mouseLookEnabled?(locked?'M 释放鼠标以操作地图和控件；Esc 也可释放':'当前浏览器使用边缘连续环视：移到画面边缘持续转动；M 关闭'):'按 M 开启无限鼠标环视';};
     const releaseMouseLook=()=>{mouseLookEnabled=false;hoverPointer=null;edgePan={x:0,y:0};if(document.pointerLockElement===view)document.exitPointerLock();syncMouseLook();};
-    const startMouseLook=async()=>{if(!fullscreenActive()||matchMedia("(pointer:coarse)").matches)return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
+    const startMouseLook=async()=>{if(!fullscreenActive()||matchMedia("(pointer:coarse)").matches||document.querySelector('.guide-tour:not([hidden])'))return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
     const toggleMouseLook=()=>{if(document.pointerLockElement===view||mouseLookEnabled)releaseMouseLook();else startMouseLook();};
     $('mouseLookButton').onclick=toggleMouseLook;
     document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===view;if(hadPointerLock&&!locked)mouseLookEnabled=false;hadPointerLock=locked;hoverPointer=null;edgePan={x:0,y:0};flightKeys.clear();syncMouseLook();});
@@ -1605,7 +1664,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
     document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
   }
-  bindEvents();syncCameraControls();SliderScales.decorateAll();updateTarget('wall');resizeCanvases();
+  bindEvents();UsageGuide.bind();syncCameraControls();SliderScales.decorateAll();updateTarget('wall');resizeCanvases();
   try{initScene();$('loading').hidden=true;}catch(e){console.error(e);$('loading').hidden=true;$('renderError').hidden=false;}
   updateReadings();requestAnimationFrame(frame);
   // Read-only inspection hook for functional verification, no external services.

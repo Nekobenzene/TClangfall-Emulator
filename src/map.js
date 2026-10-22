@@ -27,6 +27,7 @@ function createStormMap({canvas,state,getTarget,getCamera,getObserver,onChange,o
     for(let y=35;y<d.h;y+=76)for(let x=35;x<d.w;x+=76){const e=state.mapEast+(x-d.w/2)/d.s,n=state.mapNorth-(y-d.h/2)/d.s,w=M.meanWind(state.east-e,state.north-n,state.intensity,t,phase);if(w.sustained<2)continue;const a=Math.atan2(-w.vn,w.ve);c.save();c.translate(x,y);c.rotate(a);c.beginPath();c.moveTo(-7,0);c.lineTo(7,0);c.lineTo(3,-3);c.moveTo(7,0);c.lineTo(3,3);c.stroke();c.restore();}
   }
   function drawOne(el,now,force){
+    if(!el.getBoundingClientRect().width||!el.getBoundingClientRect().height)return;
     const d=setup(el),{w,h,s,c}=d;if(!w||!h)return;
     const t=getTarget(),observer=site(),isBig=el===big,X=e=>w/2+(e-state.mapEast)*s,Y=n=>h/2-(n-state.mapNorth)*s;
     el.setAttribute('aria-label',`${isBig?'大':'小'}地图，宽 ${format(state.extent*2)}；${state.mapMode==='set'?'移动风暴已开启':'拖动平移，点击楼房选择观测点'}。`);

@@ -36,10 +36,8 @@
     $('freeCameraButton').setAttribute('aria-pressed',String(free));$('freeCameraButton').textContent=free?'返回楼房':'上帝视角';
     $('flightHint').hidden=!free;$('flightSettings').hidden=!free;
     for(const id of ['floorNumber','floorRange'])$(id).disabled=free;
-    $('yawRange').min=free||fullscreenActive()?-180:-75;$('yawRange').max=free||fullscreenActive()?180:95;$('pitchRange').min=free?-89:-40;$('pitchRange').max=free?89:38;
     $('flightSpeedRange').value=state.flightSpeed;$('flightSpeedValue').textContent=state.flightSpeed+' m/s';
     $('clearFogButton').setAttribute('aria-pressed',String(state.clearFog));
-    $('viewHelp').textContent=mobileControls()?'单指拖动环视 · 双指缩放 · 上帝视角按住方向键飞行':fullscreenActive()?'M 切换鼠标环视 / 操作控件 · 滚轮缩放':free?'点击视窗后 WASD 水平移动 · Q/E 升降 · Shift 加速 · 拖动环视':'拖动 / 方向键转动 · 主视窗滚轮望远镜缩放';
   }
   function turnView(yaw,pitch){state.yaw=state.freeCamera||fullscreenActive()?ObserverCamera.bearing(yaw):clamp(yaw,-75,95);state.pitch=clamp(pitch,state.freeCamera?-89:-40,state.freeCamera?89:38);updateCamera();}
   let seed = 4512;
@@ -57,7 +55,6 @@
     const side={danger:'危险半圆 · 右侧增强',safe:'安全半圆 · 左侧较弱',none:'静止 · 对称风场'}[target.semicircle];
     $('semicircleLabel').textContent=side;
     $('flowText').textContent=target.region==='clear'?'下沉晴空 · 仍有弱阵风':target.region==='outer'?'外围雨带 · 风雨部分错峰':target.region==='storm'?'暴风圈 · 稳定持续风雨':side;
-    $('weatherDescription').textContent=target.region==='clear'?'外围影响圈外：下沉晴空与弱阵风，出现概率在边界连续接续。':target.region==='core'?'低压中心仍减风，但无风眼、眼墙或暴风圈，中心仍可持续降雨。':target.sunshine>.7?(target.region==='eye'?(state.intensity>=190?'极强台风风眼：晴空与阳光，眼内低中云已清空。':'晴空风眼：云隙逐渐扩大，仍有低层与中层云。'):'雨带间隙：云层暂开，阵雨可能返回。'):target.region==='eye'?'风眼向眼墙平缓过渡，雨强可独立调节。':target.region==='wall'?'眼墙交接处风速陡增，强风雨时天空纹理淡出并与雾色融合。':target.region==='storm'?(target.hasEye?'暴风圈内风雨稳定、缓增，至眼墙陡增。':'无眼与眼墙的宽峰风场，中心减风但保留降雨。'):'外围向内阵雨阵风更频繁，波动幅度向内减小；极端暴雨较罕见。';
     $('motionReadout').textContent=state.motionSpeed?state.motionHeading+'° / '+state.motionSpeed+' kt':'静止';
     const sec=Math.floor(state.simTime);$('simClock').textContent='模拟经过 '+Math.floor(sec/3600).toString().padStart(2,'0')+':'+Math.floor(sec%3600/60).toString().padStart(2,'0')+':'+(sec%60).toString().padStart(2,'0');
   }
@@ -316,7 +313,6 @@
     const heading=(state.yaw+360)%360;
     $('heading').textContent=String(Math.round(heading)%360).padStart(3,'0')+'°';
     $('headingDir').textContent=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(heading/22.5)%16];
-    $('yawRange').value=state.yaw;$('pitchRange').value=state.pitch;
   }
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
@@ -429,7 +425,6 @@
   }
   function updateReadings() {
     updateLocationText();
-    $('eyeWallReadout').hidden=!eyeViewState.visible;$('eyeWallReadout').textContent=eyeViewState.visible?'眼墙内缘 '+state.eyeRadius+' km · 外缘 '+state.wallRadius+' km · 云顶约 '+(eyeViewState.height/1000).toFixed(1)+' km':'';
     const ms=weather.ms,kt=weather.sustained,t=state.time;
     const gust=weather.gust;
     $('surgeValue').textContent='+'+surgeLevel.toFixed(2)+' m';
@@ -484,7 +479,6 @@
     for(const p of OBSERVATION_SITES){const option=document.createElement('option');option.value=p.id;option.textContent=p.name+' · 最高 '+p.maxFloor+'F';$('buildingSelect').appendChild(option);}
     $('buildingSelect').onchange=e=>selectSite(e.target.value);
     const floorChanged=el=>{state.floor=clamp(Math.round(Number(el.value)||1),1,currentSite().maxFloor);updateCamera();updateTarget();};$('floorRange').oninput=e=>floorChanged(e.target);$('floorNumber').onchange=e=>floorChanged(e.target);$('floorNumber').onkeydown=e=>{if(e.key==='Enter'){floorChanged(e.target);e.target.blur();}};
-    for(const id of ['yaw','pitch'])$(id+'Range').addEventListener('input',e=>{state[id]=Number(e.target.value);updateCamera();drawMap();});
     $('moveButton').onclick=()=>{state.advect=!state.advect;$('moveButton').textContent=state.advect?'暂停推进中心':'开始推进中心';$('moveButton').setAttribute('aria-pressed',String(state.advect));if(state.advect&&state.motionSpeed===0){state.motionSpeed=15;$('motionSpeed').value=15;updateTarget();}};
 
     document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -495,7 +489,7 @@
     }));
     mapController.bind();
 
-    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls';
+    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls,.guide-card';
     view.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
     view.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;
       if(fullscreenActive()&&e.pointerType==='mouse'){
@@ -535,7 +529,7 @@
     $('homeView').onclick=()=>{state.yaw=8;state.pitch=-1.5;if(state.freeCamera){const p=currentSite();state.freeX=p.x;state.freeY=p.ground+state.floor*3;state.freeZ=p.z;}updateCamera();drawMap();};
     const syncMouseLook=()=>{const locked=document.pointerLockElement===view;$('mouseLookButton').setAttribute('aria-pressed',String(mouseLookEnabled));$('mouseLookButton').textContent=mouseLookEnabled?'环视开启 · M 关闭':'鼠标自由 · M 环视';$('mouseLookButton').title=mouseLookEnabled?(locked?'M 释放鼠标以操作地图和控件；Esc 也可释放':'当前浏览器使用边缘连续环视：移到画面边缘持续转动；M 关闭'):'按 M 开启无限鼠标环视';};
     const releaseMouseLook=()=>{mouseLookEnabled=false;hoverPointer=null;edgePan={x:0,y:0};if(document.pointerLockElement===view)document.exitPointerLock();syncMouseLook();};
-    const startMouseLook=async()=>{if(!fullscreenActive()||matchMedia("(pointer:coarse)").matches)return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
+    const startMouseLook=async()=>{if(!fullscreenActive()||matchMedia("(pointer:coarse)").matches||document.querySelector('.guide-tour:not([hidden])'))return;mouseLookEnabled=true;hoverPointer=null;edgePan={x:0,y:0};view.focus({preventScroll:true});try{await view.requestPointerLock();}catch(e){/* Embedded browsers can deny pointer lock; edge panning still allows full turns. */}syncMouseLook();};
     const toggleMouseLook=()=>{if(document.pointerLockElement===view||mouseLookEnabled)releaseMouseLook();else startMouseLook();};
     $('mouseLookButton').onclick=toggleMouseLook;
     document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===view;if(hadPointerLock&&!locked)mouseLookEnabled=false;hadPointerLock=locked;hoverPointer=null;edgePan={x:0,y:0};flightKeys.clear();syncMouseLook();});
@@ -560,7 +554,7 @@
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
     document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
   }
-  bindEvents();syncCameraControls();SliderScales.decorateAll();updateTarget('wall');resizeCanvases();
+  bindEvents();UsageGuide.bind();syncCameraControls();SliderScales.decorateAll();updateTarget('wall');resizeCanvases();
   try{initScene();$('loading').hidden=true;}catch(e){console.error(e);$('loading').hidden=true;$('renderError').hidden=false;}
   updateReadings();requestAnimationFrame(frame);
   // Read-only inspection hook for functional verification, no external services.

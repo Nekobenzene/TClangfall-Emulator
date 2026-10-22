@@ -10,9 +10,9 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="brandmark" aria-hidden="true">◎</span><div><h1>临海 <span>台风视场模拟器</span></h1><p>COASTAL OBSERVATORY</p></div></div>
-    <div class="top-actions"><span class="offline">离线场景</span><button id="aboutButton" class="quiet">模型说明</button><button id="resetButton" class="quiet">重置</button></div>
+    <div class="top-actions"><span class="offline">离线场景</span><button id="guideButton" class="quiet" aria-haspopup="dialog">使用指南</button><button id="aboutButton" class="quiet">模型说明</button><button id="resetButton" class="quiet">重置</button></div>
   </header>
-  <main class="workspace">
+  <main class="workspace sidebar-collapsed">
     <section class="observation" aria-label="住宅观测视场">
       <div id="view" class="view" tabindex="0" role="application" aria-label="三维观测视场，拖动环视，滚轮缩放；全屏 M 切换无限鼠标环视；上帝视角下 WASD 移动，Q E 升降，Shift 加速">
         <div id="sceneMount"></div><canvas id="glass" aria-hidden="true"></canvas>
@@ -37,16 +37,14 @@
         <div class="reading"><span class="metric-label">水平能见度</span><div><strong id="visibility">0.0</strong><span id="visibilityUnit" class="unit">km</span></div><small id="visibilityNote">雨幕遮蔽</small></div>
         <div class="reading"><span class="metric-label">风来向</span><div class="direction-line"><span id="windArrow">↑</span><strong id="windDirection">东南</strong></div><small id="windDegrees">135°</small></div>
       </div>
-      <div class="observation-bottom"><span id="viewHelp">拖动 / 方向键转动 · 主视窗滚轮望远镜缩放</span><button id="pauseButton" class="quiet" aria-pressed="false">暂停模拟</button><button id="soundButton" class="quiet" aria-pressed="false">开启风雨声</button></div>
-      <div class="sea-readout"><span>当前水面上升 <b id="surgeValue" title="相对常态水位的上升高度">+0.00 m</b></span><span>趋势 <b id="surgeTrend">平稳</b></span><span>雨量 <b id="rainValue">0 mm/h</b></span><small id="floodStage">海水未漫上步道 · 第一阶 0.25 m</small></div>
-      <div class="damage-readout"><b id="damageStatus">风毁 0 / 0</b><span id="survivalNote">按风速与累计受风时间计算耐受</span></div>
+      <div class="observation-bottom"><button id="pauseButton" class="quiet" aria-pressed="false">暂停模拟</button><button id="soundButton" class="quiet" aria-pressed="false">开启风雨声</button></div>
+      <div class="status-row"><div class="sea-readout"><span>当前水面上升 <b id="surgeValue" title="相对常态水位的上升高度">+0.00 m</b></span><span>趋势 <b id="surgeTrend">平稳</b></span><span>雨量 <b id="rainValue">0 mm/h</b></span><small id="floodStage">海水未漫上步道 · 第一阶 0.25 m</small></div>
+      <div class="damage-readout"><b id="damageStatus">风毁 0 / 0</b><span id="survivalNote">按风速与累计受风时间计算耐受</span></div></div>
       <div class="observer-controls"><label>观测楼房 <select id="buildingSelect" aria-label="选择观测楼房"></select></label><label>楼层 <input id="floorNumber" type="number" min="1" max="14" value="6" step="1" aria-label="观测楼层"> F</label><input id="floorRange" type="range" min="1" max="14" value="6" step="1" aria-label="观测楼层滑动条"><span id="floorHeight">18 m</span></div>
       <div id="flightSettings" class="flight-settings" hidden><label>飞行速度 <output id="flightSpeedValue">35 m/s</output><input id="flightSpeedRange" type="range" min="1" max="300" step="1" value="35" aria-label="自由飞行速度"></label><output id="flightPosition">E 0 / N 0 km · 海拔 18.9 m</output></div>
-      <div class="view-controls"><label>视线方位 <input id="yawRange" type="range" min="-75" max="95" value="8" step="1" aria-label="视线方位滑动条"></label><label>俯仰 <input id="pitchRange" type="range" min="-40" max="38" value="-1.5" step=".5" aria-label="视线俯仰滑动条"></label></div>
-      <div class="scene-caption"><span id="weatherDescription">正在读取风场…</span><span id="eyeWallReadout" hidden></span><span class="model-note">假想海岸 · 北半球</span></div>
     </section>
-    <aside class="controls" aria-label="台风模拟控制">
-      <details class="control-group map-section" open><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
+    <aside id="settingsPanel" class="controls" aria-label="台风模拟控制"><button id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel"><span>台风设置</span><i aria-hidden="true">‹</i></button>
+      <details class="control-group map-section"><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
         <div class="map-toolbar"><button id="smallWindField" aria-pressed="false" title="在小地图叠加持续风速着色与风矢量">风场显示</button><button id="mapCity">楼群</button><button id="mapHome">观测点</button><button id="mapFit">全风场</button></div><label class="map-mode-switch"><input id="stormDragToggle" type="checkbox"> 移动风暴中心</label>
         <div class="map-wrap"><canvas id="map" tabindex="0" role="application" aria-label="台风地图，默认拖动或方向键平移；开启移动风暴后才能设置中心。"></canvas><div class="map-zoom"><button id="zoomIn" title="放大地图" aria-label="放大地图">+</button><button id="zoomOut" title="缩小地图" aria-label="缩小地图">−</button></div><span class="north-mark">N ↑</span></div>
         <small id="smallFieldLegend" hidden>持续风 · kt　低风速 蓝 → 绿 → 黄 → 高风速 紫</small>
@@ -56,7 +54,7 @@
         <div class="coordinate-row"><span>中心相对观测点</span><span id="coordinates">E 28.0 / N 0.0 km</span></div>
         <details class="position-controls"><summary>精调中心位置（以海岸公寓为原点）</summary><div class="parameter-grid"><label>东向距离 <span><input id="east" type="number" min="-10000" max="10000" value="22.4" step=".1"> km</span></label><input id="eastRange" type="range" min="-1600" max="1600" value="22.4" step=".1" aria-label="台风中心东向距离滑动条"><label>北向距离 <span><input id="north" type="number" min="-10000" max="10000" value="16.8" step=".1"> km</span></label><input id="northRange" type="range" min="-1600" max="1600" value="16.8" step=".1" aria-label="台风中心北向距离滑动条"></div></details>
       </details>
-      <details class="control-group intensity-section" open><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
+      <details class="control-group intensity-section"><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
         <input id="intensity" class="range" type="range" min="20" max="200" step="1" value="110" aria-label="调整台风最大一分钟持续风速">
 
         <p id="thresholdNote" class="structure-note">67 kt 起风眼与眼墙连续发展，34 kt 起具有暴风圈。</p>
@@ -70,6 +68,7 @@
     </aside>
   </main>
   <dialog id="largeMapDialog" class="large-map-dialog" aria-labelledby="largeMapTitle"><div class="section-heading"><h2 id="largeMapTitle">实时持续风场 <small>1 min · kt</small></h2><button id="closeLargeMap" aria-label="关闭大地图">关闭 ×</button></div><div class="large-map-tools"><label class="map-mode-switch"><input id="showWindField" type="checkbox" checked> 显示持续风场</label><label class="map-mode-switch"><input id="largeStormDragToggle" type="checkbox"> 移动风暴中心</label><button id="largeMapCity">查看楼群</button><button id="largeMapFit">全风场</button><button id="largeOpenPalette" aria-haspopup="dialog">风场色标</button><output id="largeMapWidth">360 km</output></div><div class="large-map-surface"><canvas id="largeMap" tabindex="0" role="application" aria-label="实时持续风场大地图"></canvas><div class="map-zoom"><button id="largeZoomIn" aria-label="放大大地图">+</button><button id="largeZoomOut" aria-label="缩小大地图">−</button></div><span id="fieldProbe">拖动平移，悬停查看此处持续风；点击楼房切换观测点。</span></div><div class="field-colorbar"><span>0</span><span>34</span><span>67</span><span>100</span><span>140</span><span>200 kt</span></div><div class="large-map-footer"><label>地图范围 <input id="largeExtentRange" type="range" min="0" max="1000" step="1" value="770" aria-label="大地图范围，对数缩放"></label><div id="mapSiteChoices" class="site-choices" aria-label="地图观测楼房"></div></div></dialog>
+  <dialog id="usageGuide" class="usage-guide" aria-labelledby="guideTitle"><header class="guide-heading"><div><small>从观测到控制</small><h2 id="guideTitle">使用指南</h2></div><button id="closeGuide" aria-label="关闭使用指南">关闭 ×</button></header><p class="guide-intro">先看风雨，再改变风暴。交互引导会带你找到对应控件，可以边操作边阅读。</p><div class="guide-diagram" aria-label="操作流程：观察视场，定位台风，调节风雨"><span><i aria-hidden="true">◉</i>观察视场<small>转动 · 缩放 · 换楼层</small></span><b aria-hidden="true">→</b><span><i aria-hidden="true">◎</i>定位台风<small>地图 · 风圈 · 观测点</small></span><b aria-hidden="true">→</b><span><i aria-hidden="true">≋</i>调节风雨<small>强度 · 移动 · 时间</small></span></div><button id="startGuide" class="guide-start">开始交互引导 <span>约 2 分钟 · 8 步</span></button><div id="guideChapters" class="guide-chapters" aria-label="按主题查看指引"></div><footer class="guide-footer"><span>随时点顶部“使用指南”重新打开。</span><button id="guideModelNotes">模型与限制</button></footer></dialog>
   <dialog id="about"><form method="dialog"><div class="section-heading"><h2>风场与操作说明</h2><button class="quiet" aria-label="关闭说明">关闭 ×</button></div>
 <p>“去除雨雾”仅提高视觉通透度，保留雨丝与运动白色雾带，气象能见度读数不变。全屏默认锁定鼠标，移动鼠标即可无限环视，不受屏幕边缘限制；按 M 切换环视开关，关闭后可操作地图与控件，Esc 也可释放鼠标。若浏览器不支持鼠标锁定，则在画面边缘持续转动，仍可无限环绕；小地图可开启“拖动风暴中心”，开关与其他地图同步。滚轮支持 0.35–12 倍：最广垂直视场约 115°，附轻微桶形畸变与暗角。晴空 / 低降水有蓝天漫射、暖色阳光、地面反弹光与建筑树木投影；海面具有天空反射、视角相关水色和太阳碎光。</p>
 <p>主视窗滚轮提供 0.35–12 倍望远镜缩放，点击倍率复位；高倍率下拖动更精细。“上帝视角”从当前位置进入自由飞行：点击视窗后 WASD 前后左右，WASD 始终沿水平面移动；Q/E 或 C/空格垂直升降，Shift 四倍加速，拖动可 360° 环视，俯仰范围 ±89°。飞行速度在视窗下方调节为 1–300 m/s，不受建筑、地面或高度限制，天气暂停时仍可飞行。风雨读数与地图视点跟随实际位置；“俯瞰楼群”进入海岸上空，“返回楼房”或重新选楼回到楼层视点，“归中”回到所选楼房位置。场景扩展内陆和南侧楼群，包含棕榈、阔叶树、层叠针叶树、窄冠树、长椅、花池及更多车辆。五座海边轻型棚屋在超过 120 kt 后累计受损，屋顶可被掀起、墙板倒伏，点击“恢复”重建。中低风速雨丝下落速度约 32 m/s，可见雨丝显著加密；强风下仍逐步转为横行碎雾。</p>
