@@ -5,6 +5,9 @@ const UsageGuide=(()=>{
   const mobile=()=>matchMedia('(pointer:coarse)').matches||innerWidth<=1000;
   const setSidebar=open=>{workspace.classList.toggle('sidebar-collapsed',!open);toggle.setAttribute('aria-expanded',String(open));toggle.querySelector('span').textContent=open?'收起设置':'台风设置';};
   toggle.onclick=()=>setSidebar(workspace.classList.contains('sidebar-collapsed'));
+  // Older browsers without native named-details grouping still keep one category open.
+  const groups=[...sidebar.querySelectorAll('.control-group')];
+  groups.forEach(group=>group.addEventListener('toggle',()=>{if(group.open)groups.forEach(other=>{if(other!==group)other.open=false;});}));
   const steps=[
    {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“台风设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“台风设置”展开参数。'},
    {title:'换楼房与楼层',target:'.observer-controls',text:()=> '选择一座观测楼房，再拖动楼层滑条或输入楼层。不同地点和高度有不同的视野；自由飞行时先返回楼房，才能调节楼层。'},
@@ -24,8 +27,9 @@ const UsageGuide=(()=>{
    const overlap=c=>Math.max(0,Math.min(c.x+cw,r.right)-Math.max(c.x,r.left))*Math.max(0,Math.min(c.y+ch,r.bottom)-Math.max(c.y,r.top));candidates.sort((a,b)=>overlap(a)-overlap(b));Object.assign(card.style,{left:Math.max(pad,candidates[0].x)+'px',top:Math.max(pad,candidates[0].y)+'px'});
   }
   const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(position);};
+  const targetSize=new ResizeObserver(schedule);
   function finish(restoreFocus=true){
-   if(!snapshot)return;tour.hidden=true;setSidebar(snapshot.open);snapshot.details.forEach(([el,open])=>el.open=open);
+   if(!snapshot)return;tour.hidden=true;targetSize.disconnect();setSidebar(snapshot.open);snapshot.details.forEach(([el,open])=>el.open=open);
    $('view').classList.toggle('controls-open',snapshot.cameraOpen);$('sceneControlsToggle').setAttribute('aria-expanded',String(snapshot.cameraOpen));
    $('view').classList.toggle('clean-view',snapshot.clean);$('sceneCleanToggle').setAttribute('aria-pressed',String(snapshot.clean));$('sceneCleanToggle').textContent=snapshot.clean?'显示':'净览';
    window.scrollTo(snapshot.x,snapshot.y);if(restoreFocus)$('guideButton').focus({preventScroll:true});snapshot=null;target=null;
@@ -35,7 +39,7 @@ const UsageGuide=(()=>{
    $('view').classList.remove('clean-view');$('sceneCleanToggle').setAttribute('aria-pressed','false');$('sceneCleanToggle').textContent='净览';
    if(step.group){setSidebar(true);document.querySelector(step.group).open=true;}
    if(mobile()){$('view').classList.toggle('controls-open',!!step.camera);$('sceneControlsToggle').setAttribute('aria-expanded',String(!!step.camera));}
-   target=document.querySelector(step.target);$('guideProgress').textContent=`上手引导 ${index+1} / ${steps.length}`;$('guideStepTitle').textContent=step.title;$('guideStepText').textContent=step.text();$('previousGuideStep').disabled=index===0;$('nextGuideStep').textContent=index===steps.length-1?'完成引导':'下一步 →';
+   target=document.querySelector(step.target);targetSize.disconnect();targetSize.observe(target);$('guideProgress').textContent=`上手引导 ${index+1} / ${steps.length}`;$('guideStepTitle').textContent=step.title;$('guideStepText').textContent=step.text();$('previousGuideStep').disabled=index===0;$('nextGuideStep').textContent=index===steps.length-1?'完成引导':'下一步 →';
    tour.hidden=false;target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});position();schedule();
   }
   function start(step=0){

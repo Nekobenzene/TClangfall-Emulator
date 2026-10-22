@@ -63,7 +63,7 @@
 @media(max-width:1000px),(pointer:coarse){#view .hud-metrics>[hidden]{display:none!important}#view #hudDirection{display:inline;position:absolute;right:6px;bottom:7px;font:9px/1.1 sans-serif;max-width:47%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#view #hudWindPanel{position:relative}#view #hudWindValue{font-size:14px}}
 /* Calm default: fold all settings; keep live water and damage on one status row. */
 .settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;margin-bottom:12px;padding:10px 12px;text-align:left;font-size:12px;background:#1b2d32;border-color:#486067}.settings-toggle i{font:22px/1 Consolas,monospace;font-style:normal}
-.workspace.sidebar-collapsed{grid-template-columns:minmax(0,1fr) 40px;gap:18px}.sidebar-collapsed .controls>:not(.settings-toggle){display:none!important}.sidebar-collapsed .settings-toggle{writing-mode:vertical-rl;justify-content:flex-start;width:40px;min-height:136px;gap:20px;padding:14px 8px;margin:0;letter-spacing:2px}.sidebar-collapsed .settings-toggle i{transform:rotate(180deg)}
+.workspace.sidebar-collapsed{grid-template-columns:minmax(0,1fr) 40px;gap:18px}.sidebar-collapsed .settings-toggle{writing-mode:vertical-rl;justify-content:flex-start;width:40px;min-height:136px;gap:20px;padding:14px 8px;margin:0;letter-spacing:2px}.sidebar-collapsed .settings-toggle i{transform:rotate(180deg)}
 .status-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px 24px}.status-row .sea-readout{gap:7px 18px;min-width:0}.status-row .sea-readout small{flex-basis:100%;margin:0;line-height:1.6}.status-row .damage-readout{display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin:0;padding:12px 3px 3px;max-width:310px;text-align:right;line-height:1.5}.status-row .damage-readout span{font-size:10px}.observation-bottom{justify-content:flex-end}
 @media(min-width:1001px) and (pointer:fine){.view{height:clamp(380px,calc(100dvh - 300px),880px)}}
 @media(max-width:1000px),(pointer:coarse){.workspace.sidebar-collapsed{display:block}.sidebar-collapsed .settings-toggle{writing-mode:horizontal-tb;width:100%;min-height:44px;justify-content:space-between;letter-spacing:0;padding:10px 12px}.sidebar-collapsed .settings-toggle i{transform:rotate(-90deg)}.status-row{grid-template-columns:1fr;gap:0}.status-row .damage-readout{flex-direction:row;align-items:baseline;flex-wrap:wrap;max-width:none;text-align:left;gap:5px 12px;padding-top:6px}}
@@ -72,6 +72,42 @@
 .guide-tour{position:fixed;inset:0;z-index:1600;pointer-events:none}.guide-tour[hidden]{display:none}.guide-spotlight{position:fixed;border:2px solid #c0dfb7;border-radius:8px;box-shadow:0 0 0 4px #244c3b55;pointer-events:none}.guide-card{position:fixed;pointer-events:auto;width:min(340px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;background:#182e33f7;color:#e5eeea;border:1px solid #88a69c;border-radius:9px;box-shadow:0 10px 34px #08161880;padding:16px}.guide-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px}.guide-card small{font:10px Consolas,monospace;color:#a8c9b6}.guide-card h2{font-size:18px;font-weight:500;margin:9px 0}.guide-card p{font-size:12px;line-height:1.8;margin:0 0 14px;color:#c1d3d3}.guide-card button{font-size:11px;min-height:38px;padding:7px 10px}.guide-card nav{display:flex;justify-content:space-between;gap:10px}.guide-card nav button:last-child{background:#365b49;border-color:#8aa795;color:#e2f0e4}.guide-card button:disabled{opacity:.4;cursor:default}
 @media(max-width:600px){.usage-guide{padding:16px}.guide-diagram{gap:6px}.guide-diagram small{font-size:9px}.guide-chapters{grid-template-columns:1fr}.guide-heading h2{font-size:22px}.guide-start{font-size:12px}.guide-start span{font-size:9px}.guide-card{padding:12px}.guide-card button{min-height:44px}}
 @media(max-height:500px){.guide-card{width:min(310px,calc(100vw - 16px));padding:10px 12px}.guide-card h2{font-size:15px;margin:5px 0}.guide-card p{font-size:11px;line-height:1.6;margin-bottom:8px}.guide-card button{min-height:34px}.guide-chapters{grid-template-columns:1fr 1fr}}
+
+/* Keep the desktop observation and all live controls inside one viewport. */
+@media(min-width:1001px) and (pointer:fine){
+ .topbar{height:64px;padding-inline:20px}.brandmark{font-size:30px}.brand h1{font-size:21px}.brand p{margin-top:3px}
+ .workspace{height:calc(100dvh - 64px);padding:12px 18px;gap:16px;align-items:stretch}
+ .observation{position:relative;top:auto;align-self:stretch;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) repeat(5,auto);gap:6px}
+ #view:not(:fullscreen):not(.is-fullscreen){height:auto;min-height:0;max-height:none}
+ .readings{padding:8px 0 7px}.metric-label{margin-bottom:4px}.reading strong{font-size:28px}.reading>small{margin-top:3px}.wind-meter{margin-top:6px}.direction-line{height:32px}.direction-line strong{font-size:19px}
+ .observation-bottom{margin:0}.observation-bottom .quiet{padding:5px 8px;min-height:28px}
+ .status-row{gap:8px 18px}.status-row .sea-readout,.status-row .damage-readout{padding-top:2px;padding-bottom:0}.status-row .sea-readout{gap:3px 14px}.status-row .damage-readout{gap:2px}
+ .observer-controls{margin:0 3px;gap:5px 14px}.flight-settings{margin:0 3px;gap:12px}.flight-settings label{gap:4px}
+ .controls{height:100%;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#46605f transparent}
+ .settings-toggle{position:sticky;top:0;z-index:1}.sidebar-collapsed .controls{overflow:hidden}
+}
+/* Grid interpolation lets the scene grow while the sidebar folds. */
+.workspace{transition:grid-template-columns .28s cubic-bezier(.22,.7,.3,1)}
+.settings-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .28s cubic-bezier(.22,.7,.3,1)}
+.settings-content{min-height:0;overflow:hidden;opacity:1;visibility:visible;transition:opacity .18s ease,visibility .28s}
+.sidebar-collapsed .settings-body{grid-template-rows:0fr}.sidebar-collapsed .settings-content{opacity:0;visibility:hidden;pointer-events:none}
+/* Native details keep keyboard semantics and animate in both directions. */
+@supports (interpolate-size:allow-keywords){
+ details{interpolate-size:allow-keywords}
+ details::details-content{block-size:0;overflow:clip;opacity:0;transition:block-size .26s cubic-bezier(.22,.7,.3,1),opacity .2s ease,content-visibility .26s allow-discrete}
+ details[open]::details-content{block-size:auto;opacity:1}
+}
+/* Temporary view panels and dialogs also fade on entry and exit. */
+@supports (transition-behavior:allow-discrete){
+ .camera-toolbar,.hud-settings,.hud-map-wrap{transition:opacity .2s ease,translate .2s ease,display .2s allow-discrete}
+ @media(max-width:1000px),(pointer:coarse){
+  #view:not(.controls-open) .camera-toolbar,#view:not(.display-open) .hud-settings,#view:not(.mobile-map-open) .hud-map-wrap{opacity:0;translate:0 6px;pointer-events:none}
+ }
+ dialog{transition:opacity .2s ease,translate .2s ease,display .2s allow-discrete,overlay .2s allow-discrete}
+ dialog:not([open]){opacity:0;translate:0 8px}
+ @starting-style{dialog[open],#view.controls-open .camera-toolbar,#view.display-open .hud-settings,#view.mobile-map-open .hud-map-wrap{opacity:0;translate:0 6px}}
+}
+@media(prefers-reduced-motion:reduce){.workspace,.settings-body,.settings-content,details::details-content,.camera-toolbar,.hud-settings,.hud-map-wrap,dialog{transition:none!important}}
 </style>
 </head>
 <body>
@@ -111,7 +147,7 @@
       <div id="flightSettings" class="flight-settings" hidden><label>飞行速度 <output id="flightSpeedValue">35 m/s</output><input id="flightSpeedRange" type="range" min="1" max="300" step="1" value="35" aria-label="自由飞行速度"></label><output id="flightPosition">E 0 / N 0 km · 海拔 18.9 m</output></div>
     </section>
     <aside id="settingsPanel" class="controls" aria-label="台风模拟控制"><button id="settingsToggle" class="settings-toggle" aria-expanded="false" aria-controls="settingsPanel"><span>台风设置</span><i aria-hidden="true">‹</i></button>
-      <details class="control-group map-section"><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
+      <div class="settings-body"><div class="settings-content"><details class="control-group map-section" name="typhoon-settings"><summary class="section-heading"><h2>风场沙盘</h2><span id="mapDistance">距中心 28.0 km</span></summary><p class="helper" id="mapModeNote">拖动平移 · 点击楼房切换观测点</p>
         <div class="map-toolbar"><button id="smallWindField" aria-pressed="false" title="在小地图叠加持续风速着色与风矢量">风场显示</button><button id="mapCity">楼群</button><button id="mapHome">观测点</button><button id="mapFit">全风场</button></div><label class="map-mode-switch"><input id="stormDragToggle" type="checkbox"> 移动风暴中心</label>
         <div class="map-wrap"><canvas id="map" tabindex="0" role="application" aria-label="台风地图，默认拖动或方向键平移；开启移动风暴后才能设置中心。"></canvas><div class="map-zoom"><button id="zoomIn" title="放大地图" aria-label="放大地图">+</button><button id="zoomOut" title="缩小地图" aria-label="缩小地图">−</button></div><span class="north-mark">N ↑</span></div>
         <small id="smallFieldLegend" hidden>持续风 · kt　低风速 蓝 → 绿 → 黄 → 高风速 紫</small>
@@ -121,17 +157,17 @@
         <div class="coordinate-row"><span>中心相对观测点</span><span id="coordinates">E 28.0 / N 0.0 km</span></div>
         <details class="position-controls"><summary>精调中心位置（以海岸公寓为原点）</summary><div class="parameter-grid"><label>东向距离 <span><input id="east" type="number" min="-10000" max="10000" value="22.4" step=".1"> km</span></label><input id="eastRange" type="range" min="-1600" max="1600" value="22.4" step=".1" aria-label="台风中心东向距离滑动条"><label>北向距离 <span><input id="north" type="number" min="-10000" max="10000" value="16.8" step=".1"> km</span></label><input id="northRange" type="range" min="-1600" max="1600" value="16.8" step=".1" aria-label="台风中心北向距离滑动条"></div></details>
       </details>
-      <details class="control-group intensity-section"><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
+      <details class="control-group intensity-section" name="typhoon-settings"><summary class="section-heading"><h2>强度与降雨</h2><span id="category">台风</span></summary><div class="intensity-value"><input id="intensityNumber" type="number" value="110" min="20" max="200" step="1" aria-label="台风最大一分钟持续风速，节"><span>kt <small>静止参考 · 最大 1 分钟风</small></span></div>
         <input id="intensity" class="range" type="range" min="20" max="200" step="1" value="110" aria-label="调整台风最大一分钟持续风速">
 
         <p id="thresholdNote" class="structure-note">67 kt 起风眼与眼墙连续发展，34 kt 起具有暴风圈。</p>
         <div class="parameter-grid rain-control"><label>独立雨强 <span><input id="rainStrength" type="number" min="0" max="200" value="100" step="1"> %</span></label><input id="rainStrengthRange" type="range" min="0" max="200" value="100" aria-label="独立雨强滑动条"></div><p class="structure-note">100% 为默认；主要调制内圈，外围仅轻微响应。</p>
-        </details><details class="control-group structure-section"><summary class="section-heading"><h2>风圈结构</h2><span>四圈半径</span></summary><div class="parameter-grid" id="radiusControls"><label>风眼半径 <span><input id="eyeRadius" type="number" min="2" max="100" value="15" step="1"> km</span></label><input id="eyeRadiusRange" type="range" min="2" max="100" value="15" aria-label="风眼半径滑动条"><label>眼墙外界半径 <span><input id="wallRadius" type="number" min="6" max="240" value="40" step="1"> km</span></label><input id="wallRadiusRange" type="range" min="6" max="240" value="40" aria-label="眼墙外界半径滑动条"><label>暴风圈半径 <span><input id="stormRadius" type="number" min="48" max="900" value="110" step="1"> km</span></label><input id="stormRadiusRange" type="range" min="48" max="900" value="110" aria-label="暴风圈半径滑动条"><label>外围影响半径 <span><input id="influenceRadius" type="number" min="130" max="1500" value="260" step="1"> km</span></label><input id="influenceRadiusRange" type="range" min="130" max="1500" value="260" aria-label="外围影响半径滑动条"></div><p class="structure-note" id="structureNote">最大风速半径 28.0 km</p>
+        </details><details class="control-group structure-section" name="typhoon-settings"><summary class="section-heading"><h2>风圈结构</h2><span>四圈半径</span></summary><div class="parameter-grid" id="radiusControls"><label>风眼半径 <span><input id="eyeRadius" type="number" min="2" max="100" value="15" step="1"> km</span></label><input id="eyeRadiusRange" type="range" min="2" max="100" value="15" aria-label="风眼半径滑动条"><label>眼墙外界半径 <span><input id="wallRadius" type="number" min="6" max="240" value="40" step="1"> km</span></label><input id="wallRadiusRange" type="range" min="6" max="240" value="40" aria-label="眼墙外界半径滑动条"><label>暴风圈半径 <span><input id="stormRadius" type="number" min="48" max="900" value="110" step="1"> km</span></label><input id="stormRadiusRange" type="range" min="48" max="900" value="110" aria-label="暴风圈半径滑动条"><label>外围影响半径 <span><input id="influenceRadius" type="number" min="130" max="1500" value="260" step="1"> km</span></label><input id="influenceRadiusRange" type="range" min="130" max="1500" value="260" aria-label="外围影响半径滑动条"></div><p class="structure-note" id="structureNote">最大风速半径 28.0 km</p>
       </details>
-      <details class="control-group motion-section"><summary class="section-heading"><h2>移动与时间</h2><span id="motionReadout">静止</span></summary><div class="direction-editor"><div id="headingDial" class="heading-dial" role="slider" tabindex="0" aria-label="台风移动方向转盘" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0"><span class="dial-n">N</span><span class="dial-e">E</span><span class="dial-s">S</span><span class="dial-w">W</span><i id="dialNeedle"></i></div><p>拖动转盘调整去向<br><small>方向键微调 · Shift 加速</small></p></div><div class="parameter-grid"><label>前进方向 <span><input id="motionHeading" type="number" min="0" max="359" step="1" value="0"> °</span></label><input id="motionHeadingRange" type="range" min="0" max="359" value="0" aria-label="移动方向滑动条"><label>移动速度 <span><input id="motionSpeed" type="number" min="0" max="60" step="1" value="0"> kt</span></label><input id="motionSpeedRange" type="range" min="0" max="60" value="0" aria-label="移动速度滑动条"><label for="timeScale">时间倍率 <span><input id="timeScale" type="number" min="1" max="1000" step="1" value="60"> ×</span></label><input id="timeScaleRange" type="range" min="0" max="1000" step="0.1" value="592.7" aria-label="时间倍率滑动条，对数 1 至 1000 倍"></div><button id="moveButton" aria-pressed="false">开始推进中心</button><p class="structure-note">0° 向北，90° 向东。移速始终参与风场；暂停推进只固定中心位置。危险半圆为前进方向右侧。</p><p id="simClock" class="structure-note">模拟经过 00:00</p></details>
-      <details class="control-group preset-section"><summary class="section-heading"><h2>快速体验</h2><span>保持当前强度</span></summary><div class="presets"><button data-preset="clear">下沉晴空</button><button data-preset="outer">外围雨带</button><button data-preset="storm">暴风圈内</button><button data-preset="wall" class="selected">眼墙掠过</button><button data-preset="eye">风眼中心</button><button data-preset="reverse">另一侧眼墙</button></div></details>
+      <details class="control-group motion-section" name="typhoon-settings"><summary class="section-heading"><h2>移动与时间</h2><span id="motionReadout">静止</span></summary><div class="direction-editor"><div id="headingDial" class="heading-dial" role="slider" tabindex="0" aria-label="台风移动方向转盘" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0"><span class="dial-n">N</span><span class="dial-e">E</span><span class="dial-s">S</span><span class="dial-w">W</span><i id="dialNeedle"></i></div><p>拖动转盘调整去向<br><small>方向键微调 · Shift 加速</small></p></div><div class="parameter-grid"><label>前进方向 <span><input id="motionHeading" type="number" min="0" max="359" step="1" value="0"> °</span></label><input id="motionHeadingRange" type="range" min="0" max="359" value="0" aria-label="移动方向滑动条"><label>移动速度 <span><input id="motionSpeed" type="number" min="0" max="60" step="1" value="0"> kt</span></label><input id="motionSpeedRange" type="range" min="0" max="60" value="0" aria-label="移动速度滑动条"><label for="timeScale">时间倍率 <span><input id="timeScale" type="number" min="1" max="1000" step="1" value="60"> ×</span></label><input id="timeScaleRange" type="range" min="0" max="1000" step="0.1" value="592.7" aria-label="时间倍率滑动条，对数 1 至 1000 倍"></div><button id="moveButton" aria-pressed="false">开始推进中心</button><p class="structure-note">0° 向北，90° 向东。移速始终参与风场；暂停推进只固定中心位置。危险半圆为前进方向右侧。</p><p id="simClock" class="structure-note">模拟经过 00:00</p></details>
+      <details class="control-group preset-section" name="typhoon-settings"><summary class="section-heading"><h2>快速体验</h2><span>保持当前强度</span></summary><div class="presets"><button data-preset="clear">下沉晴空</button><button data-preset="outer">外围雨带</button><button data-preset="storm">暴风圈内</button><button data-preset="wall" class="selected">眼墙掠过</button><button data-preset="eye">风眼中心</button><button data-preset="reverse">另一侧眼墙</button></div></details>
       <div class="wind-info"><span id="mapWindArrow">↖</span><div><b id="flowText">逆时针环流</b><p>雨线与杂物随本地风向运动</p></div></div>
-      <p class="disclaimer">风场与天气为简化视觉模拟，非预报数据。</p>
+      <p class="disclaimer">风场与天气为简化视觉模拟，非预报数据。</p></div></div>
     </aside>
   </main>
   <dialog id="largeMapDialog" class="large-map-dialog" aria-labelledby="largeMapTitle"><div class="section-heading"><h2 id="largeMapTitle">实时持续风场 <small>1 min · kt</small></h2><button id="closeLargeMap" aria-label="关闭大地图">关闭 ×</button></div><div class="large-map-tools"><label class="map-mode-switch"><input id="showWindField" type="checkbox" checked> 显示持续风场</label><label class="map-mode-switch"><input id="largeStormDragToggle" type="checkbox"> 移动风暴中心</label><button id="largeMapCity">查看楼群</button><button id="largeMapFit">全风场</button><button id="largeOpenPalette" aria-haspopup="dialog">风场色标</button><output id="largeMapWidth">360 km</output></div><div class="large-map-surface"><canvas id="largeMap" tabindex="0" role="application" aria-label="实时持续风场大地图"></canvas><div class="map-zoom"><button id="largeZoomIn" aria-label="放大大地图">+</button><button id="largeZoomOut" aria-label="缩小大地图">−</button></div><span id="fieldProbe">拖动平移，悬停查看此处持续风；点击楼房切换观测点。</span></div><div class="field-colorbar"><span>0</span><span>34</span><span>67</span><span>100</span><span>140</span><span>200 kt</span></div><div class="large-map-footer"><label>地图范围 <input id="largeExtentRange" type="range" min="0" max="1000" step="1" value="770" aria-label="大地图范围，对数缩放"></label><div id="mapSiteChoices" class="site-choices" aria-label="地图观测楼房"></div></div></dialog>
@@ -464,6 +500,9 @@ const UsageGuide=(()=>{
   const mobile=()=>matchMedia('(pointer:coarse)').matches||innerWidth<=1000;
   const setSidebar=open=>{workspace.classList.toggle('sidebar-collapsed',!open);toggle.setAttribute('aria-expanded',String(open));toggle.querySelector('span').textContent=open?'收起设置':'台风设置';};
   toggle.onclick=()=>setSidebar(workspace.classList.contains('sidebar-collapsed'));
+  // Older browsers without native named-details grouping still keep one category open.
+  const groups=[...sidebar.querySelectorAll('.control-group')];
+  groups.forEach(group=>group.addEventListener('toggle',()=>{if(group.open)groups.forEach(other=>{if(other!==group)other.open=false;});}));
   const steps=[
    {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“台风设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“台风设置”展开参数。'},
    {title:'换楼房与楼层',target:'.observer-controls',text:()=> '选择一座观测楼房，再拖动楼层滑条或输入楼层。不同地点和高度有不同的视野；自由飞行时先返回楼房，才能调节楼层。'},
@@ -483,8 +522,9 @@ const UsageGuide=(()=>{
    const overlap=c=>Math.max(0,Math.min(c.x+cw,r.right)-Math.max(c.x,r.left))*Math.max(0,Math.min(c.y+ch,r.bottom)-Math.max(c.y,r.top));candidates.sort((a,b)=>overlap(a)-overlap(b));Object.assign(card.style,{left:Math.max(pad,candidates[0].x)+'px',top:Math.max(pad,candidates[0].y)+'px'});
   }
   const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(position);};
+  const targetSize=new ResizeObserver(schedule);
   function finish(restoreFocus=true){
-   if(!snapshot)return;tour.hidden=true;setSidebar(snapshot.open);snapshot.details.forEach(([el,open])=>el.open=open);
+   if(!snapshot)return;tour.hidden=true;targetSize.disconnect();setSidebar(snapshot.open);snapshot.details.forEach(([el,open])=>el.open=open);
    $('view').classList.toggle('controls-open',snapshot.cameraOpen);$('sceneControlsToggle').setAttribute('aria-expanded',String(snapshot.cameraOpen));
    $('view').classList.toggle('clean-view',snapshot.clean);$('sceneCleanToggle').setAttribute('aria-pressed',String(snapshot.clean));$('sceneCleanToggle').textContent=snapshot.clean?'显示':'净览';
    window.scrollTo(snapshot.x,snapshot.y);if(restoreFocus)$('guideButton').focus({preventScroll:true});snapshot=null;target=null;
@@ -494,7 +534,7 @@ const UsageGuide=(()=>{
    $('view').classList.remove('clean-view');$('sceneCleanToggle').setAttribute('aria-pressed','false');$('sceneCleanToggle').textContent='净览';
    if(step.group){setSidebar(true);document.querySelector(step.group).open=true;}
    if(mobile()){$('view').classList.toggle('controls-open',!!step.camera);$('sceneControlsToggle').setAttribute('aria-expanded',String(!!step.camera));}
-   target=document.querySelector(step.target);$('guideProgress').textContent=`上手引导 ${index+1} / ${steps.length}`;$('guideStepTitle').textContent=step.title;$('guideStepText').textContent=step.text();$('previousGuideStep').disabled=index===0;$('nextGuideStep').textContent=index===steps.length-1?'完成引导':'下一步 →';
+   target=document.querySelector(step.target);targetSize.disconnect();targetSize.observe(target);$('guideProgress').textContent=`上手引导 ${index+1} / ${steps.length}`;$('guideStepTitle').textContent=step.title;$('guideStepText').textContent=step.text();$('previousGuideStep').disabled=index===0;$('nextGuideStep').textContent=index===steps.length-1?'完成引导':'下一步 →';
    tour.hidden=false;target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});position();schedule();
   }
   function start(step=0){

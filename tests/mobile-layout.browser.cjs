@@ -7,7 +7,7 @@ const sizes=[[390,844],[844,390],[667,375],[568,320],[320,568]];
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL||'msedge'});const results=[];
  try{
  for(const [width,height] of sizes){
-  const context=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true,deviceScaleFactor:1});const page=await context.newPage(),errors=[];page.setDefaultTimeout(6000);page.on('pageerror',e=>errors.push(e.message));
+  const context=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true,deviceScaleFactor:1,reducedMotion:'reduce'});const page=await context.newPage(),errors=[];page.setDefaultTimeout(6000);page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}`);await page.waitForFunction(()=>window.TyphoonSimulator?.diagnostics().sceneReady);
   assert(await page.evaluate(()=>matchMedia('(pointer:coarse)').matches));
   const baseline=await page.locator('#view').evaluate(el=>{const view=el.getBoundingClientRect(),visible=e=>!!(e.getBoundingClientRect().width&&getComputedStyle(e).visibility!=='hidden');return{view:{x:view.x,y:view.y,width:view.width,height:view.height},toolbar:visible(el.querySelector('.camera-toolbar')),zoom:visible(el.querySelector('.touch-zoom')),overflow:document.documentElement.scrollWidth>innerWidth};});
