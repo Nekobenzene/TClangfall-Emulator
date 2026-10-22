@@ -16,3 +16,8 @@ button.emit('pointerdown',1);button.emit('pointerdown',2);button.emit('pointerup
 button.emit('pointerdown',3);window.emit('blur');assert(!keys.size);button.emit('pointerdown',4);clear();assert(!keys.size);
 button.emit('pointerdown',5);document.emit('visibilitychange');assert(!keys.size);
 console.log('PASS: touch centroids, pinch rebasing and suppression through final release, cancellation, ignored UI, held flight keys and blur/visibility cleanup.');
+
+const stick=new Target();stick.style={setProperty(){}};stick.getBoundingClientRect=()=>({left:0,top:0,width:90,height:90});const joystickKeys=new Set();Touch.joystick(stick,joystickKeys);
+stick.emit('pointerdown',10,45,45);assert.equal(joystickKeys.size,0);stick.emit('pointermove',10,70,15);assert.deepEqual([...joystickKeys].sort(),['KeyD','KeyW']);stick.emit('pointerdown',11,0,90);assert.deepEqual([...joystickKeys].sort(),['KeyD','KeyW']);stick.emit('pointerup',11);assert.equal(joystickKeys.size,2);stick.emit('pointermove',10,15,70);assert.deepEqual([...joystickKeys].sort(),['KeyA','KeyS']);stick.emit('pointercancel',10);assert.equal(joystickKeys.size,0);
+stick.emit('pointerdown',12,45,0);window.emit('blur');assert.equal(joystickKeys.size,0);
+console.log('PASS: flight joystick dead zone, diagonal and opposite directions, second-finger isolation, cancellation and blur.');

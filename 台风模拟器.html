@@ -28,44 +28,39 @@
 #mouseLookButton{display:none}.view:fullscreen #mouseLookButton,.view.is-fullscreen #mouseLookButton{display:inline-block}
 
 .scene-caption{flex-wrap:wrap;gap:6px 16px}#eyeWallReadout{font-size:10px;color:#a9c4c9}#eyeWallReadout[hidden]{display:none}
-/* Touch layouts retain the same weather simulation and optical zoom. */
-.touch-flight,.touch-zoom{display:none}
+/* Mobile controls use one dock, temporary panels, and two edge flight controls. */
+.touch-flight,.touch-zoom,.mobile-controls,#mobileDisplaySettings{display:none}
 @media(max-width:1000px),(pointer:coarse){
  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
  button,summary{min-height:44px}button{touch-action:manipulation}
  input:not([type=range]):not([type=checkbox]):not([type=color]),select,textarea{font-size:16px!important;min-height:40px;max-width:100%}
  input[type=checkbox]{width:19px;height:19px;flex-shrink:0}
  input[type=range]{min-height:32px;touch-action:pan-y}input[type=range]::-webkit-slider-thumb{width:21px;height:21px}
- .workspace{display:block}.workspace,.observation,.controls,.control-group{min-width:0}.controls{display:block;margin-top:16px}
- .topbar{height:auto;min-height:67px;padding:12px;gap:8px}.brand h1{font-size:21px}.brand h1 span{font-size:11px}.top-actions{gap:4px}.top-actions .offline{display:none}.top-actions button{padding:8px;font-size:12px}
- .view{height:56dvh;min-height:410px}.view-top{top:16px;left:16px;right:16px;gap:6px}.location-label{flex-wrap:wrap;gap:5px}.location-label small{font-size:10px}.region-tag{white-space:nowrap;font-size:10px}
- .camera-toolbar{top:58px;left:16px;right:16px;max-width:none;display:flex;flex-wrap:wrap;gap:5px}.camera-toolbar button{font-size:11px;padding:7px 9px;min-height:44px}
- .view-bottom{left:16px;right:16px;bottom:16px;gap:6px}.view-buttons{gap:5px}.view-buttons button{min-width:44px;font-size:12px;padding:7px}.heading-readout small{display:none}
- .touch-zoom{display:flex;position:absolute;right:16px;top:162px;z-index:8;gap:4px}.touch-zoom button{min-width:44px;font-size:22px;background:#14262cda;border:1px solid #8caaa65c;color:#e0ede8;border-radius:5px}
- .flight-hint{display:none!important}.touch-flight{position:absolute;bottom:76px;left:16px;z-index:9;gap:9px;align-items:flex-end;touch-action:none}.free-camera .touch-flight{display:flex}
- .touch-flight button{width:44px;height:44px;padding:0;font-size:20px;background:#14262cda;border:1px solid #8caaa65c;border-radius:5px;color:#e0ede8;touch-action:none;user-select:none;-webkit-user-select:none}.touch-flight button.held{background:#497b75;color:white}
- .flight-pad{display:grid;grid-template-columns:repeat(3,44px);gap:4px}.flight-pad button:first-child{grid-column:2}.flight-pad button:nth-child(2){grid-column:1}.flight-height{display:grid;gap:4px}.flight-height button{font-size:14px}
+ .workspace{display:block}.workspace,.observation,.controls,.control-group{min-width:0}.controls{display:block;margin-top:16px}.observation{position:static}
+ .topbar{height:auto;min-height:60px;padding:10px 12px;gap:8px}.brand h1{font-size:21px}.brand h1 span{font-size:11px}.top-actions{gap:4px}.top-actions .offline{display:none}.top-actions button{padding:8px;font-size:12px}
+ #view{height:58dvh;min-height:340px;--dock-bottom:8px;--edge-left:10px;--edge-right:10px;--edge-top:10px}
+ #view .view-top{top:var(--edge-top);left:var(--edge-left);right:var(--edge-right);gap:8px;pointer-events:none}.location-label{flex-wrap:wrap;gap:4px;font-size:10px}.location-label small{font-size:9px}.region-tag{white-space:nowrap;font-size:10px;padding:4px 6px}#view .view-top .location-label{padding:3px 0}
+ #view .view-bottom{left:var(--edge-left);right:var(--edge-right);bottom:var(--dock-bottom);display:flex;justify-content:center;gap:4px;z-index:12}#view .heading-readout{display:none}.mobile-controls,#view .view-buttons{display:contents}#view .view-bottom button{pointer-events:auto;min-width:0;min-height:44px;flex:1;padding:4px;font-size:11px;border-radius:6px;background:#16272c99;border-color:#d2e7e32b;color:#dfebe7;max-width:90px;backdrop-filter:blur(6px)}
+ #sceneHudToggle,#sceneMapToggle{display:none}#view.mobile-fullscreen #sceneHudToggle,#view.mobile-fullscreen #sceneMapToggle{display:block}#view .view-bottom button[aria-pressed=true],#sceneControlsToggle[aria-expanded=true]{background:#345b4dba;border-color:#9fc5ac80}
+ #view .camera-toolbar{display:none;top:auto;bottom:calc(var(--dock-bottom) + 52px);left:var(--edge-left);right:auto;width:min(300px,calc(100% - var(--edge-left) - var(--edge-right)));max-width:none;max-height:calc(100% - 100px);overflow:auto;z-index:14;gap:5px;padding:8px;background:#172b30ed;border:1px solid #8fa6a64d;border-radius:9px;box-shadow:0 8px 25px #0e1d2240}
+ #view.controls-open .camera-toolbar{display:grid;grid-template-columns:1fr 1fr}.camera-toolbar button{font-size:11px;padding:6px;min-height:44px;min-width:0}.camera-toolbar #mouseLookButton{display:none!important}#mobileDisplaySettings{display:none}.mobile-fullscreen #mobileDisplaySettings{display:block}
+ .touch-zoom{display:flex;position:static;grid-column:1/-1;gap:5px;align-items:center}.touch-zoom button{flex:1;font-size:18px;min-width:44px}.touch-zoom::before{content:'视野缩放';color:#a7c1c4;font-size:11px;flex:1}
+ .flight-hint{display:none!important}.touch-flight{display:none;position:absolute;bottom:calc(var(--dock-bottom) + 54px);left:var(--edge-left);right:var(--edge-right);height:88px;z-index:9;justify-content:space-between;align-items:flex-end;pointer-events:none}.free-camera .touch-flight{display:flex}.controls-open .touch-flight,.mobile-map-open .touch-flight,.display-open .touch-flight{display:none}
+ .flight-stick{width:88px;height:88px;border-radius:50%;border:1px solid #d2e7e354;background:#20353c30;position:relative;touch-action:none;pointer-events:auto;user-select:none;-webkit-user-select:none;backdrop-filter:blur(2px)}.stick-arrows{position:absolute;inset:6px;text-align:center;font:15px/24px sans-serif;color:#e4efedbd;pointer-events:none}.stick-thumb{position:absolute;top:calc(50% - 13px);left:calc(50% - 13px);width:26px;height:26px;border-radius:50%;background:#cfdfda75;border:1px solid #e6f2efb3;transform:translate(var(--stick-x,0px),var(--stick-y,0px));pointer-events:none}.flight-stick.held{background:#345b4d70}.flight-height{display:grid;gap:4px;pointer-events:auto}.flight-height button{width:44px;height:42px;min-height:42px;padding:0;font-size:12px;background:#20353c50;border:1px solid #d2e7e354;border-radius:6px;color:#e6f2ef;touch-action:none;user-select:none;-webkit-user-select:none}.flight-height button.held{background:#497b75;color:white}
  .control-group>summary,.controls label,.control-heading{font-size:13px}.controls .hint,.controls .section-note{font-size:11px;line-height:1.6}.observer-controls{flex-wrap:wrap}.observer-controls label{font-size:12px}.observer-controls select{min-width:0}.observation-bottom{flex-wrap:wrap;gap:8px}.observation-bottom>span{width:100%;font-size:12px}.readings .metric-label{font-size:12px}
- .view:fullscreen,.view.is-fullscreen{height:100dvh!important;min-height:0!important;width:100%;padding:0}
- .view:fullscreen .view-top,.view.is-fullscreen .view-top{top:max(12px,env(safe-area-inset-top));left:12px;right:12px}
- .view:fullscreen .camera-toolbar,.view.is-fullscreen .camera-toolbar{top:64px;left:12px;right:12px}
- .view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{top:164px;right:12px}
- .view:fullscreen .view-bottom,.view.is-fullscreen .view-bottom{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom))}
- .view:fullscreen .touch-flight,.view.is-fullscreen .touch-flight{left:12px;bottom:max(74px,calc(env(safe-area-inset-bottom) + 62px))}
- .view:fullscreen .hud-settings,.view.is-fullscreen .hud-settings{top:114px;left:12px;right:auto;z-index:15;max-width:210px}.hud-settings summary{display:flex;align-items:center}.hud-settings label{min-height:36px}
- .view:fullscreen .hud-metrics,.view.is-fullscreen .hud-metrics{top:220px;left:12px;right:12px;display:flex;gap:5px;flex-wrap:wrap;pointer-events:none}.hud-metrics>div{min-width:0;flex:1;padding:7px}.hud-metrics b{font-size:18px}.hud-metrics select{pointer-events:auto;min-height:32px;font-size:12px!important}.hud-metrics small{font-size:10px}
- .view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{right:12px;bottom:74px;width:158px}.hud-map-wrap canvas{height:126px}.hud-map-wrap>div{flex-wrap:wrap}.hud-map-wrap>div>span{width:100%;font-size:10px}.hud-map-wrap button{min-width:38px;min-height:38px}.hud-map-wrap>small{display:none}.hud-storm-toggle{font-size:10px;min-height:34px;padding:4px}
+ #view:fullscreen,#view.is-fullscreen{height:100dvh!important;min-height:0!important;width:100%;padding:0;--dock-bottom:max(8px,env(safe-area-inset-bottom));--edge-left:max(10px,env(safe-area-inset-left));--edge-right:max(10px,env(safe-area-inset-right));--edge-top:max(10px,env(safe-area-inset-top))}
+ #view .hud-settings{display:none;transform:none;top:auto;left:var(--edge-left);right:auto;bottom:calc(var(--dock-bottom) + 52px);width:min(260px,calc(100% - 20px));max-width:none;max-height:calc(100% - 110px);overflow:auto;z-index:15;background:#172b30f2;padding:10px}#view.display-open .hud-settings{display:block}#view.display-open .camera-toolbar{display:none}.hud-settings summary{min-height:34px}.hud-settings label{min-height:34px;margin-top:3px}.hud-settings>select{width:100%;margin-top:8px}
+ #view .hud-metrics{top:calc(var(--edge-top) + 42px);left:var(--edge-left);right:var(--edge-right);max-width:none;display:flex;gap:0;flex-wrap:nowrap;pointer-events:none;background:#14272c55;border-radius:5px;height:50px}#view .hud-metrics>div{min-width:0;flex:1;padding:5px 8px;background:none;border:0;border-radius:0;gap:3px;overflow:hidden}#view .hud-metrics>div+div{border-left:1px solid #cfdfda26}#view .hud-metrics small{font-size:9px;white-space:nowrap}#view .hud-metrics b{font-size:16px;font-weight:500;white-space:nowrap}#view .hud-metrics span{display:none}.mobile-readings-hidden .hud-metrics{display:none!important}
+ #view .hud-map-wrap{display:none;right:var(--edge-right);bottom:calc(var(--dock-bottom) + 54px);top:auto;width:min(180px,calc(100% - 24px));max-height:calc(100% - 130px);overflow:auto;z-index:10;pointer-events:auto;background:#14272cda}#view.mobile-map-open .hud-map-wrap:not([hidden]){display:block}#view .hud-map-wrap>div:first-child{display:flex;gap:2px;flex-wrap:nowrap;padding:4px}#view .hud-map-wrap>div:first-child>span{display:none}#view .hud-map-wrap button{min-width:0;min-height:38px;flex:1;padding:3px;font-size:11px}#view .hud-map-wrap canvas{height:min(130px,24dvh)}#view .hud-map-wrap>small:not(.wind-color-legend){display:none}.hud-storm-toggle{font-size:10px;min-height:36px;padding:4px 6px}#view .hud-map-wrap .wind-color-legend canvas{height:8px}
+ #view.clean-view .view-top,#view.clean-view .hud-metrics,#view.clean-view .hud-map-wrap,#view.clean-view .touch-flight,#view.clean-view .camera-toolbar,#view.clean-view .hud-settings,#view.clean-view .view-bottom button:not(#sceneCleanToggle){display:none!important}#view.clean-view .view-bottom{justify-content:flex-end;pointer-events:none}#view.clean-view #sceneCleanToggle{flex:none;width:52px;pointer-events:auto;background:#16272c60}
  .large-map-dialog,.palette-dialog{max-height:calc(100dvh - 16px);overflow:auto}.palette-node{grid-template-columns:64px 36px minmax(65px,1fr) 44px;gap:5px}.palette-node input{width:100%;min-width:0}.large-map-tools{flex-wrap:wrap}.large-map-dialog button{min-width:44px}
 }
-@media(max-width:370px){.camera-toolbar{gap:3px}.camera-toolbar button{font-size:10px;padding:6px}.view-top .location-label small{display:none}.free-camera .touch-flight{gap:5px;left:10px}.hud-map-wrap{max-width:144px}.touch-flight button{width:40px}.flight-pad{grid-template-columns:repeat(3,40px);gap:3px}.flight-height{gap:3px}}
-@media(max-height:500px) and (max-width:1000px){
- .view{height:90dvh;min-height:330px}.camera-toolbar{top:48px;right:200px}.touch-zoom{top:106px}.view:fullscreen .camera-toolbar,.view.is-fullscreen .camera-toolbar{top:48px;right:210px}.view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{top:106px;right:190px}
- .view:fullscreen .hud-settings,.view.is-fullscreen .hud-settings{top:10px;left:auto;right:12px}.view:fullscreen .hud-metrics,.view.is-fullscreen .hud-metrics{top:105px;left:220px;right:190px}.view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{bottom:66px}.hud-metrics b{font-size:15px}.hud-metrics>div{padding:5px}.hud-map-wrap canvas{height:100px}
+@media(max-height:500px) and (max-width:1000px), (pointer:coarse) and (orientation:landscape){
+ #view{height:calc(100dvh - 82px);min-height:220px;max-height:none}#view .view-top{right:auto;max-width:175px}#view .view-top .region-tag{display:none}.location-label small{display:none}#view .hud-metrics{top:var(--edge-top);left:195px;right:var(--edge-right);height:44px;max-width:440px}#view .hud-metrics>div{padding:4px 10px}#view .hud-metrics b{font-size:15px}#view .view-bottom{left:50%;right:auto;transform:translateX(-50%);width:min(360px,calc(100% - 180px))}#view .camera-toolbar,#view .hud-settings{left:50%;transform:translateX(-50%);width:280px}#view .touch-flight{bottom:var(--dock-bottom)}.flight-stick{width:80px;height:80px}.stick-arrows{inset:2px}.flight-height button{height:38px;min-height:38px}#view .hud-map-wrap{bottom:calc(var(--dock-bottom) + 52px)}#view.clean-view .view-bottom{left:auto;right:var(--edge-right);transform:none;width:auto}
 }
-@media(max-width:370px){.view:fullscreen .hud-map-wrap,.view.is-fullscreen .hud-map-wrap{width:124px}.hud-map-wrap canvas{height:105px}.hud-map-wrap button{min-width:32px;padding:3px}}
-@media(max-height:500px) and (max-width:1000px){.view:fullscreen .touch-zoom,.view.is-fullscreen .touch-zoom{left:12px;right:auto}.view:fullscreen .view-top,.view.is-fullscreen .view-top{right:200px}}
+@media(max-width:370px){.view-top .location-label small{display:none}#view .view-bottom button{font-size:10px}#view .hud-metrics b{font-size:14px}}
 
-@media(pointer:coarse){.camera-toolbar #mouseLookButton{display:none!important}}
+@media(max-width:1000px),(pointer:coarse){#view .hud-metrics>[hidden]{display:none!important}#view #hudDirection{display:inline;position:absolute;right:6px;bottom:7px;font:9px/1.1 sans-serif;max-width:47%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#view #hudWindPanel{position:relative}#view #hudWindValue{font-size:14px}}
 </style>
 </head>
 <body>
@@ -79,11 +74,11 @@
         <div id="sceneMount"></div><canvas id="glass" aria-hidden="true"></canvas>
         <div class="window-surround" aria-hidden="true"><div class="sill"></div></div>
       <div class="view-top"><div class="location-label"><span class="live-dot"></span><span id="locationName">海岸公寓 / 6F</span><small id="heightLabel">视点高度 18 m</small></div><span id="regionTag" class="region-tag">核心眼墙</span></div>
-        <div class="camera-toolbar" aria-label="视角与望远镜"><button id="freeCameraButton" aria-pressed="false">上帝视角</button><button id="overviewButton" title="切换自由飞行并俯瞰海岸楼群">俯瞰楼群</button><button id="zoomReset" title="滚轮：0.35 倍广角至 12 倍望远镜，点击恢复 1 倍"><output id="zoomValue">1.0×</output> <small>复位</small></button><button id="clearFogButton" aria-pressed="false" title="仅提高渲染能见度，保留雨丝和运动白色雾带；气象能见度读数不变">去除雨雾</button><button id="mouseLookButton" aria-pressed="false" title="M 切换无限鼠标环视">鼠标自由 · M 环视</button></div>
-        <div class="touch-zoom" aria-label="触屏视野缩放"><button id="viewZoomOut" aria-label="缩小视野倍率">−</button><button id="viewZoomIn" aria-label="放大视野倍率">＋</button></div>
-<div class="touch-flight" aria-label="自由飞行触屏控制"><div class="flight-pad"><button data-flight="KeyW" aria-label="向前移动">↑</button><button data-flight="KeyA" aria-label="向左移动">←</button><button data-flight="KeyS" aria-label="向后移动">↓</button><button data-flight="KeyD" aria-label="向右移动">→</button></div><div class="flight-height"><button data-flight="KeyE" aria-label="上升">升</button><button data-flight="KeyQ" aria-label="下降">降</button></div></div>
+        <div id="sceneToolbar" class="camera-toolbar" aria-label="视角与望远镜"><button id="freeCameraButton" aria-pressed="false">上帝视角</button><button id="overviewButton" title="切换自由飞行并俯瞰海岸楼群">俯瞰楼群</button><button id="zoomReset" title="滚轮：0.35 倍广角至 12 倍望远镜，点击恢复 1 倍"><output id="zoomValue">1.0×</output> <small>复位</small></button><button id="clearFogButton" aria-pressed="false" title="仅提高渲染能见度，保留雨丝和运动白色雾带；气象能见度读数不变">去除雨雾</button><button id="mouseLookButton" aria-pressed="false" title="M 切换无限鼠标环视">鼠标自由 · M 环视</button></div>
+<div class="touch-flight" aria-label="自由飞行触屏控制"><div id="flightStick" class="flight-stick" role="group" aria-label="飞行摇杆，向外拖动以水平移动"><span class="stick-arrows" aria-hidden="true">↑<br>←　→<br>↓</span><i class="stick-thumb" aria-hidden="true"></i></div><div class="flight-height"><button data-flight="KeyE" aria-label="上升">升</button><button data-flight="KeyQ" aria-label="下降">降</button></div></div>
+<div class="touch-zoom" aria-label="触屏视野缩放"><button id="viewZoomOut" aria-label="缩小视野倍率">−</button><button id="viewZoomIn" aria-label="放大视野倍率">＋</button></div>
 <div id="flightHint" class="flight-hint" hidden>WASD 水平移动 · Q / E 降 / 升 · Shift 4 倍加速 · 全屏 M 切换环视</div>
-        <div class="view-bottom"><div class="heading-readout"><span id="heading">013°</span><span id="headingDir">NNE</span><small>视线方位</small></div><div class="view-buttons"><button id="homeView" title="视角归中" aria-label="视角归中">归中</button><button id="restoreButton" title="恢复风毁场景，保留台风与水位">恢复</button><button id="fullscreen" title="全屏观测">全屏</button></div></div>
+        <div class="view-bottom"><div class="heading-readout"><span id="heading">013°</span><span id="headingDir">NNE</span><small>视线方位</small></div><div class="mobile-controls"><button id="sceneControlsToggle" aria-expanded="false" aria-controls="sceneToolbar">视角</button><button id="sceneHudToggle" aria-pressed="true">读数</button><button id="sceneMapToggle" aria-pressed="false" aria-controls="hudMapPanel">地图</button><button id="sceneCleanToggle" aria-pressed="false">净览</button></div><div class="view-buttons"><button id="homeView" title="视角归中" aria-label="视角归中">归中</button><button id="restoreButton" title="恢复风毁场景，保留台风与水位">恢复</button><button id="fullscreen" title="全屏观测">全屏</button></div></div>
         <div class="fs-hud" id="fsHud">
           <details class="hud-settings"><summary>观测显示</summary><label><input id="hudWindVisible" type="checkbox" checked> 风速风向</label><label><input id="hudRainVisible" type="checkbox" checked> 雨量</label><label><input id="hudWaterVisible" type="checkbox" checked> 水面上升</label><label><input id="hudMapVisible" type="checkbox" checked> 小地图</label><label><input id="hudMapField" type="checkbox" checked> 地图风速着色</label></details>
           <div class="hud-metrics"><div id="hudWindPanel"><small>本地风速 · <select id="hudWindMode" aria-label="全屏风速类型"><option value="sustained">持续风</option><option value="gust">阵风</option></select></small><b id="hudWindValue">0 kt</b><span id="hudDirection">近静风</span></div><div id="hudRainPanel"><small>雨量</small><b id="hudRainValue">0 mm/h</b></div><div id="hudWaterPanel"><small>当前水面上升</small><b id="hudSurgeValue">+0.0 m</b><span id="hudSurgeTrend">平稳</span></div></div>
@@ -406,8 +401,51 @@ function hold(button,key,keys){
  for(const n of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(n,release);
  const clear=()=>{pointers.clear();keys.delete(key);button.classList.remove('held');};window.addEventListener('blur',clear);document.addEventListener('visibilitychange',clear);return clear;
 }
-return{bindGesture,hold};})();
+function joystick(el,keys){
+ let active=null;const codes=['KeyW','KeyA','KeyS','KeyD'];
+ const reset=()=>{active=null;codes.forEach(k=>keys.delete(k));el.style.setProperty('--stick-x','0px');el.style.setProperty('--stick-y','0px');el.classList.remove('held');};
+ const move=e=>{const r=el.getBoundingClientRect(),radius=r.width*.33;let x=(e.clientX-r.left-r.width/2)/radius,y=(e.clientY-r.top-r.height/2)/radius;const length=Math.hypot(x,y);if(length>1){x/=length;y/=length;}codes.forEach(k=>keys.delete(k));if(Math.hypot(x,y)>.23){if(y<-.35)keys.add('KeyW');if(y>.35)keys.add('KeyS');if(x<-.35)keys.add('KeyA');if(x>.35)keys.add('KeyD');}el.style.setProperty('--stick-x',x*radius+'px');el.style.setProperty('--stick-y',y*radius+'px');};
+ el.addEventListener('pointerdown',e=>{if(active!==null||e.button!==0)return;e.preventDefault();active=e.pointerId;el.setPointerCapture(active);el.classList.add('held');move(e);});
+ el.addEventListener('pointermove',e=>{if(e.pointerId===active){e.preventDefault();move(e);}});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{if(e.pointerId===active)reset();});
+ window.addEventListener('blur',reset);document.addEventListener('visibilitychange',reset);return reset;
+}
+return{bindGesture,hold,joystick};})();
 if(typeof module!=='undefined'&&module.exports)module.exports=TouchControls;
+
+/* One edge dock owns mobile overlays; the scene remains clear by default. */
+const MobileView=(()=>{
+ function bind({view,isMobile,onChange,stop}){
+  const $=id=>document.getElementById(id),toolbar=$('sceneToolbar'),dock=view.querySelector('.view-buttons'),zoom=view.querySelector('.touch-zoom'),metrics=view.querySelector('.hud-metrics'),settings=view.querySelector('.hud-settings');
+  const home=$('homeView'),restore=$('restoreButton'),zoomHome=zoom.parentElement;let mobile=null,mapOpen=false,readings=true,settingsOpen=false;
+  const fs=()=>document.fullscreenElement===view||view.classList.contains('is-fullscreen');
+  const clearPanels=()=>{view.classList.remove('controls-open','display-open');$('sceneControlsToggle').setAttribute('aria-expanded','false');settings.open=false;settingsOpen=false;$('mobileDisplaySettings')?.setAttribute('aria-expanded','false');};
+  const sync=()=>{
+   const next=isMobile();if(next!==mobile){mobile=next;clearPanels();view.classList.remove('clean-view');$('sceneCleanToggle').setAttribute('aria-pressed','false');$('sceneCleanToggle').textContent='净览';
+    if(mobile){toolbar.append(home,restore,zoom);settings.append($('hudWindMode'));}else{dock.prepend(home,restore);zoomHome.insertBefore(zoom,$('flightHint'));$('hudWindPanel').querySelector('small').append($('hudWindMode'));mapOpen=false;readings=true;}
+   }
+   view.classList.toggle('mobile-map-open',mobile&&mapOpen&&fs());view.classList.toggle('mobile-readings-hidden',mobile&&!readings);$('sceneMapToggle').setAttribute('aria-pressed',String(mapOpen));$('sceneHudToggle').setAttribute('aria-pressed',String(readings));
+   // Skip map painting when collapsed rather than drawing into a zero-sized canvas.
+   view.dataset.mobileMapVisible=String(!mobile||(mapOpen&&!view.classList.contains('clean-view')));
+   if(!fs())clearPanels();
+   onChange();
+  };
+  $('sceneControlsToggle').onclick=()=>{const open=!view.classList.contains('controls-open');clearPanels();view.classList.toggle('controls-open',open);$('sceneControlsToggle').setAttribute('aria-expanded',String(open));stop();};
+  $('sceneMapToggle').onclick=()=>{mapOpen=!mapOpen;clearPanels();stop();sync();};
+  $('sceneHudToggle').onclick=()=>{readings=!readings;sync();};
+  // Long menus are opened from the view panel, keeping only four small dock actions.
+  const displayButton=document.createElement('button');displayButton.type='button';displayButton.id='mobileDisplaySettings';displayButton.textContent='显示选项';displayButton.setAttribute('aria-expanded','false');toolbar.append(displayButton);
+  displayButton.onclick=()=>{settingsOpen=!settingsOpen;view.classList.toggle('display-open',settingsOpen);settings.open=settingsOpen;displayButton.setAttribute('aria-expanded',String(settingsOpen));};
+  $('sceneCleanToggle').onclick=()=>{const clean=!view.classList.contains('clean-view');clearPanels();stop();view.classList.toggle('clean-view',clean);$('sceneCleanToggle').setAttribute('aria-pressed',String(clean));$('sceneCleanToggle').textContent=clean?'显示':'净览';sync();};
+  toolbar.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!['mobileDisplaySettings','viewZoomIn','viewZoomOut','zoomReset'].includes(b.id))clearPanels();});
+  view.addEventListener('pointerdown',e=>{if(!e.target.closest('button,input,select,textarea,details,.camera-toolbar,.hud-map-wrap,.touch-flight'))clearPanels();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')clearPanels();});
+  document.addEventListener('fullscreenchange',sync);window.addEventListener('resize',()=>{stop();clearPanels();sync();});
+  new MutationObserver(changes=>{if(changes.some(c=>c.attributeName==='class')&&fs()!==view.classList.contains('mobile-fullscreen')){view.classList.toggle('mobile-fullscreen',fs());sync();}}).observe(view,{attributes:true,attributeFilter:['class']});
+  sync();
+ }
+ return{bind};
+})();
 
 /* Display-only optics and daylight; never changes meteorological observations. */
 const ViewAtmosphere=(()=>{
@@ -568,7 +606,7 @@ function createStormMap({canvas,state,getTarget,getCamera,getObserver,onChange,o
     c.strokeStyle='#d0dfde';c.beginPath();c.moveTo(14,h-17);c.lineTo(14+step*s,h-17);c.stroke();c.fillStyle='#c9dbd9';c.font='10px Consolas,monospace';c.fillText(format(step),16,h-23);c.fillText('N ↑',w-30,22);
   }
   function syncMode(){for(const id of ['stormDragToggle','largeStormDragToggle','hudStormDragToggle'])$(id).checked=state.mapMode==='set';for(const el of canvases)el.style.cursor=state.mapMode==='set'?'crosshair':'grab';$('mapModeNote').textContent=state.mapMode==='set'?'移动风暴已开启：点击 / 拖动设置中心':'拖动平移 · 点击楼房切换观测点';}
-  function draw(force=false){const now=performance.now();drawOne(canvas,now,force);if(dialog.open)drawOne(big,now,force);if(($('view').classList.contains('is-fullscreen')||document.fullscreenElement=== $('view'))&&$('hudMapVisible').checked)drawOne(hud,now,force);for(const id of ['extentRange','largeExtentRange']){$(id).value=slider(state.extent*2);$(id).setAttribute('aria-valuetext',format(state.extent*2));}$('mapWidth').textContent=format(state.extent*2);$('largeMapWidth').textContent=format(state.extent*2);document.querySelectorAll('[data-site]').forEach(b=>{b.classList.toggle('selected',b.dataset.site===state.siteId);b.setAttribute('aria-pressed',String(b.dataset.site===state.siteId));});}
+  function draw(force=false){const now=performance.now();drawOne(canvas,now,force);if(dialog.open)drawOne(big,now,force);if(($('view').classList.contains('is-fullscreen')||document.fullscreenElement=== $('view'))&&$('hudMapVisible').checked&&$('view').dataset.mobileMapVisible!=='false')drawOne(hud,now,force);for(const id of ['extentRange','largeExtentRange']){$(id).value=slider(state.extent*2);$(id).setAttribute('aria-valuetext',format(state.extent*2));}$('mapWidth').textContent=format(state.extent*2);$('largeMapWidth').textContent=format(state.extent*2);document.querySelectorAll('[data-site]').forEach(b=>{b.classList.toggle('selected',b.dataset.site===state.siteId);b.setAttribute('aria-pressed',String(b.dataset.site===state.siteId));});}
   function redraw(){dirty=true;draw(true);}
   function zoom(factor,anchor,el=canvas){const d=size(el),x=anchor?anchor[0]:d.w/2,y=anchor?anchor[1]:d.h/2,e=state.mapEast+(x-d.w/2)/d.s,n=state.mapNorth-(y-d.h/2)/d.s;state.extent=clamp(state.extent*factor,.12,1600);const ns=d.w/(2*state.extent);state.mapEast=e-(x-d.w/2)/ns;state.mapNorth=n+(y-d.h/2)/ns;redraw();}
   function fit(){const t=getTarget(),p=site(),el=dialog.open?big:canvas,d=size(el);state.mapEast=(state.east+p.east)*.5;state.mapNorth=(state.north+p.north)*.5;state.extent=Math.min(1600,Math.max(Math.abs(state.east-p.east)*.5+t.influenceRadius,(Math.abs(state.north-p.north)*.5+t.influenceRadius)*d.w/d.h)*1.1);redraw();}
@@ -1429,7 +1467,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     const value=$('hudWindMode').value==='gust'?weather.gust:weather.sustained;
     $('hudWindValue').textContent=Math.round(value)+' kt';
     const bearing=(Math.atan2(-weather.ve,-weather.vn)/RAD+360)%360;
-    $('hudDirection').textContent=weather.ms<.5?'近静风':'风来自 '+directionName(bearing)+' '+(Math.round(bearing)%360)+'°';
+    $('hudDirection').textContent=weather.ms<.5?'近静风':(mobileControls()?'':'风来自 ')+directionName(bearing)+(mobileControls()?'':' '+(Math.round(bearing)%360)+'°');
     $('hudMapTitle').textContent=$('hudMapField').checked?'实时持续风场 · kt':'风场位置图';
     $('hudRainValue').textContent=Math.round(weather.rain)+' mm/h';$('hudSurgeValue').textContent='+'+surgeLevel.toFixed(2)+' m';$('hudSurgeTrend').textContent=waterTrend();$('surgeTrend').textContent=waterTrend();
     for(const [toggle,panel]of [['hudWindVisible','hudWindPanel'],['hudRainVisible','hudRainPanel'],['hudWaterVisible','hudWaterPanel'],['hudMapVisible','hudMapPanel']])$(panel).hidden=!$(toggle).checked;
@@ -1502,7 +1540,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     }));
     mapController.bind();
 
-    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom';
+    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls';
     view.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
     view.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;
       if(fullscreenActive()&&e.pointerType==='mouse'){
@@ -1528,6 +1566,8 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
       move:s=>{const b=touchBaseline;if(!b)return;if(s.count>1){state.zoom=clamp(b.zoom*s.distance/Math.max(1,b.distance),ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();}else turnView(b.yaw-(s.x-b.x)*.18/Math.sqrt(Math.max(.5,state.zoom)),b.pitch+(s.y-b.y)*.14/Math.sqrt(Math.max(.5,state.zoom)));},
       end:()=>touchBaseline=null
     },e=>!!e.target.closest(cameraUi));
+    touchReleases.push(TouchControls.joystick($('flightStick'),touchFlightKeys));
+    MobileView.bind({view,isMobile:mobileControls,onChange:()=>{updateHud();resizeCanvases();},stop:()=>touchReleases.forEach(clear=>clear())});
     document.querySelectorAll('[data-flight]').forEach(b=>touchReleases.push(TouchControls.hold(b,b.dataset.flight,touchFlightKeys)));
     for(const [id,factor] of [['viewZoomIn',1.3],['viewZoomOut',1/1.3]])$(id).onclick=()=>{state.zoom=clamp(state.zoom*factor,ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();};
     const flightCodes=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyC','Space','ShiftLeft','ShiftRight']);

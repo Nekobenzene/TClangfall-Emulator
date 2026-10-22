@@ -2,7 +2,7 @@ import fs from 'node:fs';
 const read = p => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 let html = read('./src/index.source.html');
 for (const [tag, file] of [['STYLE','./src/style.css'],['THREE','./three-vendor.min.js'],['MODEL','./src/model.js'],['APP','./src/app.js']]) {
-  const source = (tag === 'APP' ? read('./src/sliders.js') + '\n' + read('./src/sites.js') + '\n' + read('./src/camera.js') + '\n' + read('./src/touch.js') + '\n' + read('./src/view-effects.js') + '\n' + read('./src/wind-colors.js') + '\n' + read('./src/map.js') + '\n' + read('./src/scenery.js') + '\n' + read('./src/flood-debris.js') + '\n' + read('./src/eye-wall.js') + '\n' + read(file) : read(file)).replace(/<\/script/gi, '<\\/script');
+  const source = (tag === 'APP' ? read('./src/sliders.js') + '\n' + read('./src/sites.js') + '\n' + read('./src/camera.js') + '\n' + read('./src/touch.js') + '\n' + read('./src/mobile-view.js') + '\n' + read('./src/view-effects.js') + '\n' + read('./src/wind-colors.js') + '\n' + read('./src/map.js') + '\n' + read('./src/scenery.js') + '\n' + read('./src/flood-debris.js') + '\n' + read('./src/eye-wall.js') + '\n' + read(file) : read(file)).replace(/<\/script/gi, '<\\/script');
   html = html.replace(`/* ${tag} */`, () => source);
 }
 html += `\n<!-- Project license\n${read('./LICENSE').replace(/-->/g, '-- >')}\n-->\n`;

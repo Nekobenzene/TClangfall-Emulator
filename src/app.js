@@ -422,7 +422,7 @@
     const value=$('hudWindMode').value==='gust'?weather.gust:weather.sustained;
     $('hudWindValue').textContent=Math.round(value)+' kt';
     const bearing=(Math.atan2(-weather.ve,-weather.vn)/RAD+360)%360;
-    $('hudDirection').textContent=weather.ms<.5?'近静风':'风来自 '+directionName(bearing)+' '+(Math.round(bearing)%360)+'°';
+    $('hudDirection').textContent=weather.ms<.5?'近静风':(mobileControls()?'':'风来自 ')+directionName(bearing)+(mobileControls()?'':' '+(Math.round(bearing)%360)+'°');
     $('hudMapTitle').textContent=$('hudMapField').checked?'实时持续风场 · kt':'风场位置图';
     $('hudRainValue').textContent=Math.round(weather.rain)+' mm/h';$('hudSurgeValue').textContent='+'+surgeLevel.toFixed(2)+' m';$('hudSurgeTrend').textContent=waterTrend();$('surgeTrend').textContent=waterTrend();
     for(const [toggle,panel]of [['hudWindVisible','hudWindPanel'],['hudRainVisible','hudRainPanel'],['hudWaterVisible','hudWaterPanel'],['hudMapVisible','hudMapPanel']])$(panel).hidden=!$(toggle).checked;
@@ -495,7 +495,7 @@
     }));
     mapController.bind();
 
-    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom';
+    const cameraUi='button,input,select,textarea,dialog,details,.hud-map-wrap,.camera-toolbar,.touch-flight,.touch-zoom,.mobile-controls';
     view.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0||e.target.closest(cameraUi))return;view.focus({preventScroll:true});if(fullscreenActive()&&e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};view.setPointerCapture(e.pointerId);view.classList.add('dragging');});
     view.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;
       if(fullscreenActive()&&e.pointerType==='mouse'){
@@ -521,6 +521,8 @@
       move:s=>{const b=touchBaseline;if(!b)return;if(s.count>1){state.zoom=clamp(b.zoom*s.distance/Math.max(1,b.distance),ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();}else turnView(b.yaw-(s.x-b.x)*.18/Math.sqrt(Math.max(.5,state.zoom)),b.pitch+(s.y-b.y)*.14/Math.sqrt(Math.max(.5,state.zoom)));},
       end:()=>touchBaseline=null
     },e=>!!e.target.closest(cameraUi));
+    touchReleases.push(TouchControls.joystick($('flightStick'),touchFlightKeys));
+    MobileView.bind({view,isMobile:mobileControls,onChange:()=>{updateHud();resizeCanvases();},stop:()=>touchReleases.forEach(clear=>clear())});
     document.querySelectorAll('[data-flight]').forEach(b=>touchReleases.push(TouchControls.hold(b,b.dataset.flight,touchFlightKeys)));
     for(const [id,factor] of [['viewZoomIn',1.3],['viewZoomOut',1/1.3]])$(id).onclick=()=>{state.zoom=clamp(state.zoom*factor,ObserverCamera.minZoom,ObserverCamera.maxZoom);updateCamera();drawMap();};
     const flightCodes=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyC','Space','ShiftLeft','ShiftRight']);
