@@ -26,7 +26,7 @@ const phase=wall.group.rotation.y;state.simTime=600;wall.update(state,weather,ob
 assert.ok(Math.abs(wall.group.rotation.y-phase-E.angularSpeed(180,28)*600)<1e-10,'rotation uses simulated seconds and Vmax/RMW');
 const paused=wall.group.rotation.y;state.intensity=185;wall.update(state,weather,observer,haze);assert.equal(wall.group.rotation.y,paused,'paused or strength edits do not jump cloud phase');
 state.east=200;state.simTime+=60;wall.update(state,weather,observer,haze);assert.ok(wall.group.rotation.y>paused,'rotation continues while observer outside eye');
-state.simTime+=5000;wall.update(state,weather,observer,haze);assert.ok(wall.group.rotation.y>Math.PI*2,'unwrapped phase keeps slower interior cloud rotation continuous across full wall turns');
+state.simTime+=5000;wall.update(state,weather,observer,haze);assert.ok(wall.group.rotation.y>Math.PI*2,'unwrapped phase keeps interior cloud rotation continuous across full wall turns');
 state.simTime=0;wall.update(state,weather,observer,haze);assert.equal(wall.group.rotation.y,0);
 const clouds=context.createEyeClouds(T);state.east=state.north=0;state.intensity=150;state.stormRadius=110;
 clouds.update(state,observer,{visibility:11000,sunshine:.1},haze,.8);assert.ok(clouds.uniforms.eyeLow.value>.5&&clouds.uniforms.eyeMid.value>.5);
@@ -34,7 +34,7 @@ clouds.update(state,observer,{visibility:11000,sunshine:.1},haze,.8);assert.ok(c
 // material coordinates must recover the same cloud, as with the rotating wall.
 for(const phase of [0,.8,6.28,25,100]){
   clouds.update(state,observer,{visibility:11000,sunshine:.1},haze,phase);
-  const point=new T.Vector3(100,0,0).applyAxisAngle(new T.Vector3(0,1,0),phase*.28),r=clouds.uniforms.eyeRotation.value;
+  const point=new T.Vector3(100,0,0).applyAxisAngle(new T.Vector3(0,1,0),phase),r=clouds.uniforms.eyeRotation.value;
   assert.ok(Math.abs(r.x*point.x+r.z*point.z-100)<1e-9&&Math.abs(r.y*point.x+r.w*point.z)<1e-9,'clouds follow northern-hemisphere counterclockwise circulation');
 }
 const sharedSky=context.createStormSky(T,clouds.uniforms),sharedWall=context.createEyeWall(T,scene,clouds.uniforms);

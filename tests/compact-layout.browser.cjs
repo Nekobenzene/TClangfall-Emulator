@@ -1,7 +1,7 @@
 /* Viewport, independent sidebar scrolling, exclusive categories and real transitions. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {chromium}=require('playwright');const root=path.resolve(__dirname,'..');
-const server=http.createServer((req,res)=>{res.setHeader('content-type','text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,'台风模拟器.html')));});
+const server=http.createServer((req,res)=>{const file=req.url.split('?')[0]==='/simulator.config.js'?'simulator.config.js':'台风模拟器.html';res.setHeader('content-type',file.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,file)));});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
   for(const [width,height] of [[1001,600],[1280,720],[1366,768],[1440,900],[1920,1080]]){

@@ -2,9 +2,10 @@
 const EyeWall=(()=>{
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+  const configured=(key,fallback,context)=>typeof SimulatorConfig!=='undefined'?SimulatorConfig.formula(key,fallback,context):fallback();
   function shape(intensity,eyeRadius,wallRadius){
     const mature=smooth(145,185,intensity),inner=eyeRadius*1000,outer=wallRadius*1000;
-    const height=11500+5500*mature;
+    const height=configured('eye.wallHeight',()=>11500+5500*mature,{intensity,eyeRadius,wallRadius,mature});
     return{inner,outer,height,base:220,tilt:Math.min((outer-inner)*.52,height*(.30+.25*mature)),
       ragged:.028-.018*mature,formation:smooth(95,105,intensity),mature};
   }
@@ -29,11 +30,11 @@ const EyeWall=(()=>{
   function environment(intensity,eyeRadius,stormRadius,distance){
     const inEye=intensity>=67&&distance<eyeRadius;
     const inside=inEye?1-smooth(eyeRadius*.965,eyeRadius,distance):0;
-    const eyeClouds=inEye?(1-smooth(130,190,intensity))*inside:0;
+    const eyeClouds=configured('eye.cloudCoverage',()=>inEye?(1-smooth(130,190,intensity))*inside:0,{inEye,intensity,eyeRadius,distance,inside});
     const deck=intensity<34?0:(intensity>=67?smooth(eyeRadius*.98,eyeRadius,distance):1)*(1-smooth(stormRadius*.97,stormRadius,distance));
     return{inEye,wallVisibility:inside,deck,lowClouds:eyeClouds,midClouds:Math.pow(eyeClouds,1.25)};
   }
-  const angularSpeed=(intensity,rmw)=>intensity*(1852/3600)/Math.max(1000,rmw*1000);
+  const angularSpeed=(intensity,rmw)=>configured('eye.angularSpeed',()=>intensity*(1852/3600)/Math.max(1000,rmw*1000),{intensity,rmw});
   return{shape,section,intersects,smooth,environment,angularSpeed};
 })();
 
@@ -164,7 +165,7 @@ function createEyeClouds(T){
     uniforms.eyeLow.value=env.lowClouds;uniforms.eyeMid.value=env.midClouds;
     // Density sampling uses the inverse world rotation: a cloud travelling east
     // to north must still sample its original material point, not rotate it twice.
-    const cloudPhase=phase*.28,c=Math.cos(cloudPhase),s=Math.sin(cloudPhase);
+    const cloudPhase=phase*1,c=Math.cos(cloudPhase),s=Math.sin(cloudPhase);
     uniforms.eyeRotation.value.set(c,s,-s,c);
     uniforms.eyeSun.value=weather.sunshine;uniforms.eyeVisibility.value=state.clearFog?22000:weather.visibility;uniforms.eyeHaze.value.copy(haze);
     return env;

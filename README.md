@@ -19,6 +19,43 @@
 
 主界面下方保留气象读数、当前水位、雨量与楼层选择，风毁状态移到水位 / 雨量右侧（手机窄屏换行）。视角通过场景拖动、方向键或触屏调整。
 
+## 配置与交互编辑器
+
+**[在线配置编辑器](https://nekobenzene.github.io/TClangfall-Emulator/config-editor.html)**，也可双击本地 `config-editor.html`。模拟器“使用指南”底部有入口。
+
+1. 编辑器分为常用参数、界面文案、计算公式、高级数值、布局与样式、着色器及其他字符串。支持全文搜索、按文件筛选、只看已修改、单项恢复；高级项附源码位置、上下文和内置值。公式提供可修改的样例输入和即时计算结果。
+2. 点“预览修改”，在新窗口运行当前修改，不写入原文件。点“导出配置 .js”得到 `simulator.config.js`，放在模拟器 HTML 同一目录，重新加载生效；支持的浏览器也可点“保存到文件”选择并写回该文件。默认只导出修改项，勾选“导出完整配置”包含全部内置默认。
+3. 模拟器优先读取同目录 `simulator.config.js`，HTTP、GitHub Pages 和双击本地 HTML 均支持。文件不存在、读取失败、字段缺失或单项类型错误时使用对应内置值；非法或非有限公式结果回退原有计算。原源码的硬编码及 HTML 内嵌默认仍保留，单独一个 HTML 也能运行。
+4. `config-catalog.json` 是生成的参数目录，包含全部第一方运行代码中的数值 / 布尔常量和字符串、HTML 可见文本 / 控件数值属性，以及 CSS、GLSL 数值。当前约 7000 项，包含数组索引和采样数等高级结构项；第三方 Three.js 源码不作改动。CSS 中的颜色 HEX、JS 中的格式字符串等可通过对应完整字符串编辑。
+5. 参数值、计算公式和说明文案分别配置。改写公式后，其内部常量以新公式为准；保留默认公式时仍使用原执行路径，数值项覆盖照常生效。改写完整着色器文本后，其原位置对应的数值覆盖不再叠加。单位约定与内置模型一致：风速 kt、距离 km、风暴潮和能见度 m、角速度 rad/s。
+
+最小配置示例（其余项全部使用 HTML 内置值）：
+
+```javascript
+globalThis.TYPHOON_CONFIG = {
+  "version": 1,
+  "values": {
+    "eye.cloudClearIntensity": 180,
+    "eye.cloudRotationRatio": 1,
+    "weather.eyeRainStopsAt": 100,
+    "weather.eyeSunStartsAt": 145,
+    "weather.eyeSunFullAt": 180
+  },
+  "texts": {},
+  "formulas": {
+    "weather.visibility": "clamp(14000 / (1 + rain * 0.15 + (ms / 20) ** 2), 80, 14000)"
+  }
+};
+```
+
+常用别名会映射到目录中的具体数值键，同一配置同时存在别名与具体键时，别名优先。文案键可在编辑器搜索原文字后获取。JSON 导出用于备份和导入；启动时自动读取的文件名为 `simulator.config.js`。
+
+可编辑公式包括 `eye.development`、`eye.rainClearing`、`wind.profile`、`weather.eyeSun`、`weather.rain`、`weather.visibility`、`surge.level`、`surge.responseSeconds`、`eye.wallHeight`、`eye.cloudCoverage`、`eye.angularSpeed`。每项可用变量列在编辑器中；支持算术、比较、条件运算、`clamp` / `smooth` 和常见 `Math` 函数，采用表达式解析器求值，不使用 `eval` / `new Function`。语法错误、未知变量、非法运算或非有限结果均可恢复到内置计算。
+
+眼内低层、中层云现默认与眼墙共用同一角速度、相位与模拟时钟，修正此前眼内云仅按眼墙 0.28 倍速度旋转的差异。`eye.cloudRotationRatio` 默认 1，可自行调整。
+
+开发时 `node build.mjs` 更新参数目录和两份 HTML，保留已有配置文件；仅在需要主动重置配置文件时运行 `node build.mjs --reset-config`。未知旧键会被忽略，可在编辑器导入时查看数量；运行时配置来源与回退信息可通过 `SimulatorConfig.diagnostics()` 查看。`node build.mjs --pages` 同时把编辑器、配置文件和目录复制到静态网站。
+
 ## 风场与天气
 
 - 输入为静止参考的最大一分钟持续风，20–200 kt。
@@ -103,12 +140,15 @@ node --test tests/*.test.cjs
 | `src/camera.js`、`src/view-effects.js` | 相机运动、镜头与光照 |
 | `src/map.js`、`src/wind-colors.js` | 地图、风场与自定义色标 |
 | `src/scenery.js`、`src/flood-debris.js` | 风响应景物、风毁与漂浮物 |
+| `src/config-runtime.js`、`tools/config-build.mjs` | 外部配置、逐项回退、表达式求值与自动参数目录 |
+| `src/config-editor.*`、`config-editor.html` | 交互配置编辑器的源码与独立网页 |
+| `simulator.config.js`、`config-catalog.json` | 可修改配置文档与生成的参数索引 |
 | `tests/` | 模型、渲染结构、操作逻辑与打包检查 |
 | `台风模拟器.html` | 构建后的单文件离线版本 |
 
 ## 许可证
 
-项目原创代码采用 [MIT License](LICENSE)。内嵌 Three.js r160 保留其独立的 [MIT 许可证](THREE-LICENSE.txt)，最终 HTML 亦附完整第三方许可证。参考项目与素材来源见下文；程序生成场景不包含外部照片或付费模型。
+项目原创代码采用 [MIT License](LICENSE)。内嵌 Three.js r160 保留其独立的 [MIT 许可证](THREE-LICENSE.txt)。配置索引和数学表达式解析使用 [Acorn](https://github.com/acornjs/acorn)，保留 [MIT 许可证](tools/vendor/ACORN-LICENSE.txt)，相关独立 HTML 亦附许可证。参考项目与素材来源见下文；程序生成场景不包含外部照片或付费模型。
 
 模型测试覆盖眼墙形成、眼区减雨和日照随强度连续变化、成熟暴风圈均匀雨量及眼墙雨量平台、无眼系统雨强梯度、170 kt 对应 3 m 与增水减速、34/67 kt 结构阈值、中心减风与保留雨、边界概率连续、独立雨强调制、持续风场一致性与强度对称性、罕见外围极大暴雨、四个半径的边界次序与连续性、内侧平缓/眼墙陡峭/暴风圈缓增、移动半圆、晴空外围弱阵风、稳定暴风圈天气、外围风雨部分错峰、极大阵雨与晴空间歇、不同体量杂物、增水函数及原有强风视觉阈值。地形测试覆盖台阶海拔、依次漫淹、高地保持干燥、岸线与地形相交及海水连通性。演化测试覆盖 170 kt / 30 kt 离开 500 km 前保水、之后缓退、涨退随时间倍率一致、风毁门槛与累积损伤及海风杂物减少。打包检查覆盖内嵌脚本语法、离线资源和许可证。
 
@@ -129,8 +169,10 @@ node --test tests/*.test.cjs
 
 雨丝与运动雾带使用空气位移减去相机位移，包含 WASD 水平飞行及 Q/E 升降；雨线方向和长度也按相对速度变化。相机移动不受天气暂停影响；天气暂停后，移动视角仍会穿越世界中静止的粒子。粒子循环支持单帧跨越多个范围，切换楼房或瞬间跳转视角会重新定位粒子范围。
 
-新增验证：`node --test tests/*.test.cjs`，包含实际尺度、开口仰角、太阳遮挡、风暴平移与相机相对粒子运动，共 12 组。
+新增验证：`node --test tests/*.test.cjs`，包含实际尺度、开口仰角、太阳遮挡、风暴平移、相机相对粒子运动和配置回退，共 14 组。
 
 云墙内壁严格限制在风眼内可见，眼墙和暴风圈使用连续低云顶，圈外沿用原天空。内壁为连续螺旋纹理，按最大风速处的角速度（Vmax/RMW）随模拟时间逆时针旋转，时间倍率与暂停均生效，修改参数不会跳相位。眼内约 0.75–1.5 km 低云和 2.7–3.8 km 中云采用同一程序密度场控制天空云隙和内壁遮挡，强度越高越稀薄，190 kt 起完全清空。强风雨时天空与场景雾色在相同输出颜色空间融合，兼容普通视角和广角后处理。
 
 浏览器触屏回归检查（需本地 Playwright 与 Edge）：`node tests/mobile-layout.browser.cjs`，覆盖普通与全屏、横竖屏、摇杆触控、读数与地图、净览及视角面板。
+
+配置浏览器验证：`node tests/config.browser.cjs`，覆盖默认计算一致性、数值 / 静态和动态文案 / CSS / GLSL / 公式覆盖、无效与缺失配置回退、编辑器修改 / 导出 / 跨窗口预览、手机布局，以及本地 `file://` 自动读取与预览。另有 `guide.browser.cjs` 和 `compact-layout.browser.cjs` 检查引导、紧凑布局和分类动画。

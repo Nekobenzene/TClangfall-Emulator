@@ -4,6 +4,7 @@
   const KT=1852/3600,RAD=Math.PI/180;
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const smooth=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);};
+  const configured=(key,fallback,context)=>root.SimulatorConfig?root.SimulatorConfig.formula(key,fallback,context):fallback();
   const strength=n=>clamp(Number(n)||20,20,200);
   // Fixed coastal cross-section, ordered from sea to inland. Short slopes join level terraces.
   const coastProfile=Object.freeze([[80,-1],[40,-.55],[39,.25],[25,.25],[23,.55],[3.5,.55],[1.5,.9],[-62,.9],[-66,1.7],[-111,1.7],[-115,2.9],[-176,2.9],[-182,4.65],[-2010,4.65]].map(Object.freeze));
@@ -35,7 +36,7 @@
     const stormRadius=clamp(Number(options.stormRadius)||110,wallRadius+8,900);
     const influenceRadius=clamp(Number(options.influenceRadius)||260,hasStorm?stormRadius+20:40,1500);
     // A newly formed eye starts as the broad weak-system core, then contracts continuously.
-    const eyeDevelopment=smooth(67,110,intensity),eyeClearing=smooth(67,100,intensity);
+    const eyeDevelopment=configured('eye.development',()=>smooth(67,110,intensity),{intensity}),eyeClearing=configured('eye.rainClearing',()=>smooth(67,100,intensity),{intensity});
     const broadRmw=hasStorm?stormRadius*.42:influenceRadius*.16;
     const rmw=broadRmw+(eyeRadius+(wallRadius-eyeRadius)*.52-broadRmw)*eyeDevelopment;
     const windWallRadius=stormRadius+(wallRadius-stormRadius)*eyeDevelopment;
@@ -69,6 +70,7 @@
     // Smooth low-order asymmetry only. The peak is preserved and strong cores become rounder.
     const a=Math.atan2(north,east),asym=.04*(1-.94*smooth(67,185,intensity));
     profile+=asym*profile*(1-profile)*(.7*Math.sin(a+.4+time*.002)+.3*Math.sin(2*a-.8));
+    profile=configured('wind.profile',()=>profile,{profile,radius,intensity,rmw,eyeRadius,stormRadius,influenceRadius,eyeDevelopment,time});
     let ve=0,vn=0;
     if(radius>1e-8){const inflow=15*RAD;ve=(north*Math.cos(inflow)+east*Math.sin(inflow))/radius*intensity*profile;vn=(-east*Math.cos(inflow)+north*Math.sin(inflow))/radius*intensity*profile;}
     const translation=.65*motionSpeed*profile;ve+=Math.sin(heading*RAD)*translation;vn+=Math.cos(heading*RAD)*translation;
@@ -87,9 +89,9 @@
     return {active:kt>threshold,speed:heavy?.22+.34*lift:medium?.48+.30*lift:.78+.18*lift,height:heavy?.4+18*lift:medium?1+37*lift:3+66*lift,
       size:heavy?1.1+1.6*lift:medium?.35+.65*lift:.10+.24*lift,tumble:heavy?.55:medium?1.4:2.8};
   }
-  function surge(kt){return clamp(3*Math.pow(Math.max(0,kt-18)/152,2),0,4.5);}
+  function surge(kt){return configured('surge.level',()=>clamp(3*Math.pow(Math.max(0,kt-18)/152,2),0,4.5),{kt});}
   // Response constants are simulated seconds; at 60x the rise retains its previous visual pace.
-  function surgeResponse(kt,rising=true){return rising?(65-25*smooth(95,185,kt))*60:6*3600;}
+  function surgeResponse(kt,rising=true){return configured('surge.responseSeconds',()=>rising?(65-25*smooth(95,185,kt))*60:6*3600,{kt,rising});}
   function advanceSurge(memory,{sustained,intensity,radius,simDt}){
     const desired=surge(sustained),dt=Math.max(0,simDt);
     memory.level=memory.level||0;memory.crest=Math.max(memory.crest||0,desired);
@@ -152,12 +154,13 @@
       const shower=.15+75*Math.pow(rainPulse,1.25)+190*rare*Math.pow(rainPulse,2.4);
       rain=((1-mix)*26*scale*(1+.035*Math.sin(time*.9))+mix*shower*outerScale)*rainEdge;
     }
-    const eyeSun=hasEye?smooth(145,180,intensity)*(1-smooth(eyeRadius*.35,eyeRadius*.88,radius)):0;
+    const eyeSun=configured('weather.eyeSun',()=>hasEye?smooth(145,180,intensity)*(1-smooth(eyeRadius*.35,eyeRadius*.88,radius)):0,{hasEye,intensity,eyeRadius,radius});
     const breakMix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius),dryBreak=(1-smooth(.02,.18,rainPulse))*breakMix;
     const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
+    rain=configured('weather.rain',()=>rain,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
     const ms=Math.hypot(ve,vn),mist=visuals(Math.max(sustained,gust*.85),rain).mistMix;
-    const visibility=clamp(11000/(1+rain*.12+3*Math.pow(rain/35,2.4)+Math.pow(ms/14,2)+mist*22*Math.pow(gust/130,2)),55,11000);
+    const visibility=configured('weather.visibility',()=>clamp(11000/(1+rain*.12+3*Math.pow(rain/35,2.4)+Math.pow(ms/14,2)+mist*22*Math.pow(gust/130,2)),55,11000),{rain,ms,mist,gust,intensity,sustained,radius});
     return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
   const api={sample,meanWind,structure,visuals,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};

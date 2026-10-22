@@ -1,7 +1,7 @@
 /* Real-browser onboarding regression. Optional: Playwright on NODE_PATH. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {chromium}=require('playwright');
-const root=path.resolve(__dirname,'..'),server=http.createServer((req,res)=>{res.setHeader('content-type','text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,'台风模拟器.html')));});
+const root=path.resolve(__dirname,'..'),server=http.createServer((req,res)=>{const file=req.url.split('?')[0]==='/simulator.config.js'?'simulator.config.js':'台风模拟器.html';res.setHeader('content-type',file.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,file)));});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL||'msedge'});
  try{
@@ -38,7 +38,7 @@ const root=path.resolve(__dirname,'..'),server=http.createServer((req,res)=>{res
    assert((await page.locator('#map').evaluate(el=>el.width))>0);
    await page.locator('#guideButton').click();await page.locator('#guideChapters button').nth(4).click();assert.equal(await page.locator('#guideStepTitle').textContent(),'让风暴移动');await page.keyboard.press('Escape');assert(await page.locator('#map').isVisible());assert.equal(await page.locator('.motion-section').getAttribute('open'),null);
    if(width===1440){
-    await page.locator('#guideButton').click();await page.locator('#guideChapters button').nth(7).click();await page.locator('#fullscreen').click();await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#view'));assert(await page.locator('#view .guide-tour').isVisible());await page.locator('#nextGuideStep').click();await page.evaluate(()=>document.exitFullscreen());await page.waitForFunction(()=>!document.fullscreenElement);
+    await page.locator('#guideButton').click();await page.locator('#guideChapters button').nth(7).click();await page.locator('#fullscreen').click();await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#view'));await page.locator('#view .guide-tour').waitFor({state:'visible'});await page.locator('#nextGuideStep').click();await page.evaluate(()=>document.exitFullscreen());await page.waitForFunction(()=>!document.fullscreenElement);
     await page.locator('#guideButton').click();await page.locator('#startGuide').click();assert.equal(await page.locator('.guide-tour').evaluate(el=>el.parentElement.tagName),'BODY');await page.locator('#endTour').click();
    }else{
     await page.locator('#sceneCleanToggle').click();await page.locator('#guideButton').click();await page.locator('#startGuide').click();assert(!(await page.locator('#view').evaluate(el=>el.classList.contains('clean-view'))));await page.locator('#endTour').click();assert(await page.locator('#view').evaluate(el=>el.classList.contains('clean-view')));

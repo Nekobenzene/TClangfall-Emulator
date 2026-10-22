@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),acorn=require('../tools/vendor/acorn.cjs');
+const context={acorn,console};vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/config-runtime.js'),'utf8'),context);const C=context.SimulatorConfig,catalog=require('../config-catalog.json');
+assert(catalog.entries.length>5000);for(const e of catalog.entries){assert(e.key);assert(['number','boolean','string'].includes(e.type));}assert.equal(new Set(catalog.entries.map(e=>e.key)).size,catalog.entries.length);
+const defaults=C.defaults(catalog);C.install(catalog,defaults);assert.equal(C.diagnostics().errors.length,0);assert.equal(C.formula('weather.visibility',()=>123,{}),123,'default formula uses original executable fallback');
+const alias=catalog.aliases['eye.cloudClearIntensity'];assert(alias);C.install(catalog,{version:1,values:{'eye.cloudClearIntensity':175},formulas:{'weather.visibility':'clamp(18000 / (1 + rain * 0.1), 100, 18000)'}});
+assert.equal(context.__CFG[catalog.entries.findIndex(e=>e.key===alias)],175);assert.equal(C.formula('weather.visibility',()=>0,{rain:10}),9000);
+for(const attack of ['globalThis.alert(1)','rain.constructor','Math.constructor(1)','(()=>1)()','rain=2','this','Math.random()','1;2'])assert.throws(()=>C.expression(attack,['rain']),attack);
+const bad=C.normalize({version:1,values:{[alias]:'wrong'},texts:{unknown:'x'},formulas:{'weather.visibility':'1 / 0'}},catalog);assert.equal(bad.errors.length,1);assert.equal(bad.unknown.length,1);
+C.install(catalog,{version:1,formulas:{'weather.visibility':'1 / 0'}});assert.equal(C.formula('weather.visibility',()=>321,{}),321,'nonfinite results fall back per invocation');
+assert.throws(()=>C.normalize({version:99},catalog));assert.throws(()=>C.parseFile('alert(1)'));assert.equal(C.parseFile('globalThis.TYPHOON_CONFIG = {"version":1};').version,1);assert.equal(C.parseFile('{"version":1}').version,1);
+assert.equal(C.expression('rain > 1 ? Math.sqrt(rain) + PI : 0',['rain'])({rain:4}),2+Math.PI);
+console.log('PASS: complete constant/text registry, unique keys, defaults, aliases, expression evaluation, invalid overrides, unsafe syntax rejection and nonfinite fallback.');

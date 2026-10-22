@@ -112,3 +112,4 @@
 .guide-spotlight{border:3px solid #ffe179;outline:2px solid #13262d;border-radius:9px;box-shadow:0 0 0 5px #ffe17944,0 0 24px #ffd34f88,inset 0 0 12px #ffe17922;animation:guide-beacon 1.4s ease-in-out infinite}
 @keyframes guide-beacon{0%,100%{border-color:#ffdd60;box-shadow:0 0 0 5px #ffe17933,0 0 12px #ffd34f55,inset 0 0 8px #ffe17911}50%{border-color:#fff8cf;box-shadow:0 0 0 6px #ffe17988,0 0 30px #ffd34fbb,inset 0 0 16px #ffe17933}}
 @media(prefers-reduced-motion:reduce){.guide-spotlight{animation:none}}
+.guide-footer{flex-wrap:wrap}.configuration-link{color:var(--accent);white-space:nowrap}
