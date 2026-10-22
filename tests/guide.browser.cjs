@@ -20,6 +20,8 @@ const root=path.resolve(__dirname,'..'),server=http.createServer((req,res)=>{res
    await page.locator('#guideButton').click();assert(await page.locator('#usageGuide').isVisible());assert.equal(await page.locator('#guideChapters button').count(),8);
    if(width===1440)await page.screenshot({path:path.join(root,'使用指南.png')});
    await page.locator('#startGuide').click();
+   assert.equal(await page.locator('.guide-spotlight').evaluate(el=>getComputedStyle(el).animationName),'guide-beacon');
+   assert(await page.locator('.guide-spotlight').evaluate(el=>el.getAnimations().some(a=>a.effect.getTiming().iterations===Infinity)));
    for(let step=0;step<8;step++){
     await page.waitForTimeout(70);assert.equal(await page.locator('#guideProgress').textContent(),`上手引导 ${step+1} / 8`);
     const bounds=await page.locator('.guide-card').boundingBox();assert(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,`${width}x${height} step ${step}: guide clipped`);

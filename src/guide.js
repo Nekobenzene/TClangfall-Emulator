@@ -8,6 +8,15 @@ const UsageGuide=(()=>{
   // Older browsers without native named-details grouping still keep one category open.
   const groups=[...sidebar.querySelectorAll('.control-group')];
   groups.forEach(group=>group.addEventListener('toggle',()=>{if(group.open)groups.forEach(other=>{if(other!==group)other.open=false;});}));
+  groups.forEach(group=>group.querySelector('summary').addEventListener('click',()=>{
+   if(group.open)return;
+   requestAnimationFrame(()=>{
+    if(!group.open)return;
+    const behavior=matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth';
+    sidebar.scrollTo({top:0,behavior});
+    if(mobile())sidebar.scrollIntoView({block:'start',behavior});
+   });
+  }));
   const steps=[
    {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“台风设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“台风设置”展开参数。'},
    {title:'换楼房与楼层',target:'.observer-controls',text:()=> '选择一座观测楼房，再拖动楼层滑条或输入楼层。不同地点和高度有不同的视野；自由飞行时先返回楼房，才能调节楼层。'},
