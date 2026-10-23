@@ -1,6 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),acorn=require('../tools/vendor/acorn.cjs');
 const context={acorn,console};vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/config-runtime.js'),'utf8'),context);const C=context.SimulatorConfig,catalog=require('../config-catalog.json');
 assert(catalog.entries.length>5000);for(const e of catalog.entries){assert(e.key);assert(['number','boolean','string'].includes(e.type));}assert.equal(new Set(catalog.entries.map(e=>e.key)).size,catalog.entries.length);
+for(const e of [...catalog.entries,...catalog.formulas])assert(typeof e.description==='string'&&e.description.length>=8,e.key+' needs a concise use description');
+assert(catalog.entries.find(e=>e.key===catalog.aliases['eye.cloudClearIntensity']).description.includes('强度（kt）'));assert(catalog.formulas.find(f=>f.key==='weather.visibility').description.includes('能见度（m）'));
 const defaults=C.defaults(catalog);C.install(catalog,defaults);assert.equal(C.diagnostics().errors.length,0);assert.equal(C.formula('weather.visibility',()=>123,{}),123,'default formula uses original executable fallback');
 const alias=catalog.aliases['eye.cloudClearIntensity'];assert(alias);C.install(catalog,{version:1,values:{'eye.cloudClearIntensity':175},formulas:{'weather.visibility':'clamp(18000 / (1 + rain * 0.1), 100, 18000)'}});
 assert.equal(context.__CFG[catalog.entries.findIndex(e=>e.key===alias)],175);assert.equal(C.formula('weather.visibility',()=>0,{rain:10}),9000);

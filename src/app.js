@@ -435,7 +435,7 @@
     $('localWind').textContent=Math.round(kt);$('localMs').textContent=`${weather.meanMs.toFixed(1)} m/s`;$('gustWind').textContent=Math.round(gust);
     const vis=weather.visibility;$('visibility').textContent=vis>=1000?(vis/1000).toFixed(1):String(Math.round(vis/10)*10);$('visibilityUnit').textContent=vis>=1000?'km':'m';$('visibilityNote').textContent=weather.sunshine>.6?(target.region==='eye'?'晴空风眼':'下沉 / 雨歇晴空'):weather.sustained>=90?'横行碎雾':weather.rain>100?'外围密集暴雨':target.region==='outer'?'阵雨间歇变化':'风雨遮蔽';
     const deg=ms<.5?null:(Math.atan2(-weather.ve,-weather.vn)/RAD+360)%360;
-    $('windDirection').textContent=deg===null?'可变':directionName(deg);$('windDegrees').textContent=deg===null?'近静风':`${Math.round(deg)%360}° 来向`;
+    $('windDirection').textContent=deg===null?'可变':directionName(deg);$('windDegrees').textContent=deg===null?'近静风':`${Math.round(deg)%360}°`;
     // ↑ rotated to the downwind direction in the currently viewed horizontal plane.
     const to=deg===null?0:(deg+180-state.yaw+360)%360;
     $('windArrow').style.transform=`rotate(${to}deg)`;$('windArrow').style.opacity=deg===null?'.25':'1';
@@ -562,4 +562,10 @@
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
   window.TyphoonSimulator.eyeEnvironment=(intensity=state.intensity,distance=0)=>EyeWall.environment(intensity,state.eyeRadius,state.stormRadius,distance);
   window.TyphoonSimulator.eyeMotion=()=>({wallPhase:eyeWall?.group.rotation.y,cloudRotation:eyeClouds?.uniforms.eyeRotation.value.toArray(),config:typeof SimulatorConfig==='undefined'?{source:'内置'}:SimulatorConfig.diagnostics()});
+  // Keep the original caption defaults available while reducing visible duplicate text.
+  document.querySelector('.reading:nth-child(2)>small').hidden=true;$('visibilityNote').hidden=true;
+  const directionLabel=$('windDegrees').closest('.reading').querySelector('.metric-label');
+  for(const node of directionLabel.childNodes)if(node.nodeType===Node.TEXT_NODE)node.nodeValue=node.nodeValue.replace('风来向','风向');
+  directionLabel.append($('windDegrees'));
+  document.querySelector('.observation-bottom').prepend(document.querySelector('.wind-info'));
 })();

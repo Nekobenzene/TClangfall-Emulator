@@ -11,7 +11,7 @@
  function set(e,v){if(v===e.default)delete draft[section(e)][e.key];else draft[section(e)][e.key]=v;count();}
  function entry(e,label,description){
   const row=node('article',undefined,'entry'+(changed(e)?' modified':'')),heading=node('div',undefined,'entry-heading'),title=node('div');row.dataset.key=e.key;
-  title.append(node('h2',label||e.key),node('small',(e.file||e.group)+(e.line?':'+e.line:'')+' · '+e.key));const reset=node('button','恢复默认');reset.onclick=()=>{set(e,e.default);render();};heading.append(title,reset);row.append(heading);if(description)row.append(node('p',description,'description'));
+  title.append(node('h2',label||e.key),node('small',(e.file||e.group)+(e.line?':'+e.line:'')+' · '+e.key));const reset=node('button','恢复默认');reset.onclick=()=>{set(e,e.default);render();};heading.append(title,reset);row.append(heading);row.append(node('p',description&&description.length>=8?description:e.description,'description'));
   const input=node(e.type==='string'?'textarea':'input');input.setAttribute('aria-label',label||e.key);
   if(e.type==='boolean'){input.type='checkbox';input.checked=value(e);}else if(e.type==='number'){input.type='number';input.step=e.integer?'1':'any';input.value=value(e);}else{input.value=value(e);input.rows=e.group==='shader'?7:Math.min(5,Math.max(2,Math.ceil(String(value(e)).length/85)));}
   input.onchange=()=>{const v=e.type==='boolean'?input.checked:e.type==='number'?Number(input.value):input.value;if(e.type==='number'&&(!input.value.trim()||!Number.isFinite(v)||(e.integer&&!Number.isInteger(v)))){message('请输入有效'+(e.integer?'整数':'数值'));return;}set(e,v);row.classList.toggle('modified',changed(e));};row.append(input);
@@ -19,7 +19,7 @@
  }
  function formulaEntry(f){
   const row=node('article',undefined,'entry'+(Object.hasOwn(draft.formulas,f.key)?' modified':''));row.dataset.key=f.key;
-  const heading=node('div',undefined,'entry-heading'),title=node('div'),reset=node('button','恢复默认');title.append(node('h2',f.key),node('small',f.file+':'+f.line));reset.onclick=()=>{delete draft.formulas[f.key];count();render();};heading.append(title,reset);row.append(heading,node('p','输入变量：'+f.args.join(', '),'description'));
+  const heading=node('div',undefined,'entry-heading'),title=node('div'),reset=node('button','恢复默认');title.append(node('h2',f.key),node('small',f.file+':'+f.line));reset.onclick=()=>{delete draft.formulas[f.key];count();render();};heading.append(title,reset);row.append(heading,node('p',f.description,'description'),node('p','输入变量：'+f.args.join(', '),'description'));
   const input=node('textarea');input.value=draft.formulas[f.key]??f.expression;input.rows=4;input.setAttribute('aria-label',f.key+' 公式');const result=node('div',undefined,'formula-result'),probes=node('div',undefined,'formula-probe'),context={};
   const examples={rain:40,ms:30,mist:.3,gust:80,intensity:160,sustained:65,radius:0,eyeRadius:15,wallRadius:40,bandRadius:110,rainFactor:1,rainPulse:.5,sunshine:.2,time:10,kt:170,rmw:28,mature:.5,inEye:1,hasEye:1,distance:0,inside:1};
   for(const key of f.args){context[key]=examples[key]??1;const label=node('label',key),probe=node('input');probe.type='number';probe.step='any';probe.value=context[key];probe.setAttribute('aria-label',f.key+' 样例 '+key);probe.oninput=()=>{context[key]=Number(probe.value);check(false);};label.append(probe);probes.append(label);}
@@ -27,10 +27,11 @@
   input.oninput=()=>check(true);row.append(input,probes,result);check(false);return row;
  }
  function render(){
+  const reference=tab==='reference';for(const el of document.querySelectorAll('.editor>.filters,.editor>#categoryNote,.editor>#entries,.editor>.pagination'))el.hidden=reference;$('formulaReference').hidden=!reference;if(reference){FormulaReference.refresh();return;}
   const query=$('searchConfig').value.toLowerCase().trim(),file=$('fileFilter').value,only=$('changedOnly').checked,container=$('entries');container.replaceChildren();$('categoryNote').textContent=descriptions[tab];
-  let items=tab==='formulas'?catalog.formulas:tab==='common'?common.map(([alias,label,description])=>{const e=byKey.get(catalog.aliases[alias]);return e?{...e,label,description}:null;}).filter(Boolean):catalog.entries.filter(e=>tab==='numbers'?['numbers','html'].includes(e.group):e.group===tab);
+  let items=tab==='formulas'?catalog.formulas:tab==='common'?common.map(([alias,label,description])=>{const e=byKey.get(catalog.aliases[alias]);return e?{...e,label,description:description.length>=8?description:e.description}:null;}).filter(Boolean):catalog.entries.filter(e=>tab==='numbers'?['numbers','html'].includes(e.group):e.group===tab);
   if(tab==='common')for(const e of catalog.entries.filter(e=>/damageKinds.*threshold/.test(e.key))){const kind=/damageKinds\.(\w+)\./.exec(e.key)?.[1],names={bin:'垃圾桶',sign:'路牌',tree:'树木',lamp:'路灯',window:'窗户',rail:'护栏',banner:'旗布',hut:'棚屋'};items.push({...e,label:'风毁门槛 · '+(names[kind]||kind),description:'kt；超过门槛后按受风时间累计损坏。'});}
-  items=items.filter(e=>(!file||e.file===file)&&(!query||(e.key+' '+e.default+' '+e.context+' '+(e.label||'')+' '+(e.expression||'')).toLowerCase().includes(query))&&(!only||(tab==='formulas'?Object.hasOwn(draft.formulas,e.key):changed(e))));
+  items=items.filter(e=>(!file||e.file===file)&&(!query||(e.key+' '+e.default+' '+e.context+' '+(e.label||'')+' '+(e.description||'')+' '+(e.expression||'')).toLowerCase().includes(query))&&(!only||(tab==='formulas'?Object.hasOwn(draft.formulas,e.key):changed(e))));
   const pages=Math.max(1,Math.ceil(items.length/40));page=Math.min(page,pages-1);for(const e of items.slice(page*40,(page+1)*40))container.append(tab==='formulas'?formulaEntry(e):entry(e,e.label,e.description));if(!items.length)container.append(node('p','没有匹配的配置项。','empty'));$('pageInfo').textContent=`${items.length} 项 · ${page+1} / ${pages} 页`;$('prevPage').disabled=page===0;$('nextPage').disabled=page>=pages-1;
  }
  function validated(){const errors=[...document.querySelectorAll('.formula-result.error')];if(errors.length)throw Error('请先修正公式错误');const result=SimulatorConfig.normalize(draft,catalog);if(result.errors.length)throw Error(result.errors.join('\n'));return result.config;}

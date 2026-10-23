@@ -11,7 +11,8 @@ export function configurationBuild(){
    if(language==='css'&&/^#[\da-fA-F]{3,8}$/.test(m[0])){const index=add(id(prefix,'color'),m[0],{type:'string',group:'css',format:'hex-color',file:'src/style.css',context:source.slice(Math.max(0,m.index-50),m.index+90)});patches.push({start:m.index,end:m.index+m[0].length,index,rawString:true,raw:m[0]});continue;}
    if(language==='css'&&/^["']/.test(m[0])){const value=m[0].slice(1,-1),index=add(id(prefix,'text'),value,{type:'string',group:/[\u3400-\u9fff]/.test(value)?'ui':'strings',file:'src/style.css',context:source.slice(Math.max(0,m.index-50),m.index+90)});patches.push({start:m.index,end:m.index+m[0].length,index,string:true,raw:m[0]});continue;}
    if(!/^[+-]?(?:\d|\.\d)/.test(m[0]))continue;const value=Number(m[0]);if(!Number.isFinite(value))continue;
-   const key=id(prefix,'number'),index=add(key,value,{type:'number',group:language,file:language==='css'?'src/style.css':'src/'+prefix.split('.')[0]+'.js',context:source.slice(Math.max(0,m.index-65),m.index+65),integer:language==='shader'&&!/[.eE]/.test(m[0])});
+   const cssProperty=language==='css'?/([\w-]+)\s*:[^:;{}]*$/.exec(source.slice(Math.max(0,source.lastIndexOf('{',m.index)),m.index))?.[1]:null;
+   const key=id(prefix,'number'),index=add(key,value,{type:'number',group:language,file:language==='css'?'src/style.css':'src/'+prefix.split('.')[0]+'.js',context:source.slice(Math.max(0,m.index-65),m.index+65),cssProperty,unit:language==='css'?/^(px|rem|em|dvh|vh|vw|ms|s|%|deg)/.exec(source.slice(m.index+m[0].length))?.[1]:null,integer:language==='shader'&&!/[.eE]/.test(m[0])});
    patches.push({start:m.index,end:m.index+m[0].length,index,float:language==='shader'&&/[.eE]/.test(m[0]),binarySign:/^[+-]/.test(m[0])&&/[\w).\]]/.test(source.slice(0,m.index).trimEnd().slice(-1)),raw:m[0]});
   }
   return patches;
@@ -23,7 +24,8 @@ export function configurationBuild(){
    const binding=[...parents].reverse().find(n=>n.type==='VariableDeclarator'&&n.id.type==='Identifier')?.id.name;
    const properties=parents.filter(n=>n.type==='Property'&&!n.computed).map(n=>n.key.name??n.key.value);
    const prefix=[file,...scope,binding,...properties].filter(Boolean).join('.');
-   const meta={file:'src/'+file+'.js',line:node.loc.start.line,scope:[...scope,binding,...properties].filter(Boolean).join(' / '),context:source.slice(Math.max(0,node.start-65),Math.min(source.length,node.end+65)).replace(/\n/g,' ')};
+   const signedLiteral=node.type==='Literal'&&typeof node.value==='number'&&parent?.type==='UnaryExpression'&&['-','+'].includes(parent.operator),semanticNode=signedLiteral?parent:node,semanticParent=signedLiteral?parents.at(-2):parent;
+   const meta={file:'src/'+file+'.js',line:node.loc.start.line,scope:[...scope,binding,...properties].filter(Boolean).join(' / '),context:source.slice(Math.max(0,node.start-65),Math.min(source.length,node.end+65)).replace(/\n/g,' '),role:semanticParent?.type,operator:semanticParent?.operator,callee:semanticParent?.type==='CallExpression'||semanticParent?.type==='NewExpression'?source.slice(semanticParent.callee.start,semanticParent.callee.end):undefined,argument:semanticParent?.arguments?.indexOf(semanticNode),index:semanticParent?.type==='MemberExpression'&&semanticParent.computed&&semanticParent.property===semanticNode};
    if(node.type==='CallExpression'&&node.callee.name==='configured'&&node.arguments[0]?.type==='Literal'){
     const [key,fallback,context]=node.arguments;
     formulas.push({key:key.value,expression:source.slice(fallback.body.start,fallback.body.end),args:context.properties.map(p=>p.key.name),...meta});

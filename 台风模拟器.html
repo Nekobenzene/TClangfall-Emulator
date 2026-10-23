@@ -120,6 +120,9 @@
 @keyframes guide-beacon{0%,100%{border-color:#ffdd60;box-shadow:0 0 0 5px #ffe17933,0 0 12px #ffd34f55,inset 0 0 8px #ffe17911}50%{border-color:#fff8cf;box-shadow:0 0 0 6px #ffe17988,0 0 30px #ffd34fbb,inset 0 0 16px #ffe17933}}
 @media(prefers-reduced-motion:reduce){.guide-spotlight{animation:none}}
 .guide-footer{flex-wrap:wrap}.configuration-link{color:var(--accent);white-space:nowrap}
+.metric-label #windDegrees{margin-left:7px;font:11px Consolas,monospace;color:#aebfc2;letter-spacing:0}
+.observation-bottom .wind-info{flex:1;min-width:0;gap:8px;margin:0 auto 0 0;padding:0;border:0}.observation-bottom .wind-info>span{font-size:22px;width:24px;flex-shrink:0}.observation-bottom .wind-info b{font-size:11px}.observation-bottom .wind-info p{font-size:9px;margin:2px 0 0}
+@media(max-width:600px){.observation-bottom{flex-wrap:wrap}.observation-bottom .wind-info{flex-basis:calc(100% - 175px)}.observation-bottom .wind-info b{font-size:10px}.observation-bottom .wind-info p{display:none}.metric-label #windDegrees{display:block;margin:3px 0 0;font-size:10px}}
 </style>
 </head>
 <body>
@@ -1611,7 +1614,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     $('localWind').textContent=Math.round(kt);$('localMs').textContent=`${weather.meanMs.toFixed(1)} m/s`;$('gustWind').textContent=Math.round(gust);
     const vis=weather.visibility;$('visibility').textContent=vis>=1000?(vis/1000).toFixed(1):String(Math.round(vis/10)*10);$('visibilityUnit').textContent=vis>=1000?'km':'m';$('visibilityNote').textContent=weather.sunshine>.6?(target.region==='eye'?'晴空风眼':'下沉 / 雨歇晴空'):weather.sustained>=90?'横行碎雾':weather.rain>100?'外围密集暴雨':target.region==='outer'?'阵雨间歇变化':'风雨遮蔽';
     const deg=ms<.5?null:(Math.atan2(-weather.ve,-weather.vn)/RAD+360)%360;
-    $('windDirection').textContent=deg===null?'可变':directionName(deg);$('windDegrees').textContent=deg===null?'近静风':`${Math.round(deg)%360}° 来向`;
+    $('windDirection').textContent=deg===null?'可变':directionName(deg);$('windDegrees').textContent=deg===null?'近静风':`${Math.round(deg)%360}°`;
     // ↑ rotated to the downwind direction in the currently viewed horizontal plane.
     const to=deg===null?0:(deg+180-state.yaw+360)%360;
     $('windArrow').style.transform=`rotate(${to}deg)`;$('windArrow').style.opacity=deg===null?'.25':'1';
@@ -1738,6 +1741,12 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
   window.TyphoonSimulator.eyeEnvironment=(intensity=state.intensity,distance=0)=>EyeWall.environment(intensity,state.eyeRadius,state.stormRadius,distance);
   window.TyphoonSimulator.eyeMotion=()=>({wallPhase:eyeWall?.group.rotation.y,cloudRotation:eyeClouds?.uniforms.eyeRotation.value.toArray(),config:typeof SimulatorConfig==='undefined'?{source:'内置'}:SimulatorConfig.diagnostics()});
+  // Keep the original caption defaults available while reducing visible duplicate text.
+  document.querySelector('.reading:nth-child(2)>small').hidden=true;$('visibilityNote').hidden=true;
+  const directionLabel=$('windDegrees').closest('.reading').querySelector('.metric-label');
+  for(const node of directionLabel.childNodes)if(node.nodeType===Node.TEXT_NODE)node.nodeValue=node.nodeValue.replace('风来向','风向');
+  directionLabel.append($('windDegrees'));
+  document.querySelector('.observation-bottom').prepend(document.querySelector('.wind-info'));
 })();
 </script>
 </body>

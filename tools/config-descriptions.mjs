@@ -1,0 +1,36 @@
+const modules={model:'风雨与增水模型',app:'场景与天气动画',sliders:'滑动条标度',sites:'观测楼房',camera:'相机与自由飞行',touch:'触屏手势', 'mobile-view':'手机视角控制',guide:'使用指南','view-effects':'大气光照与镜头','wind-colors':'风场色标',map:'风场地图',scenery:'景物与风毁','flood-debris':'水面漂浮物','eye-wall':'眼墙与眼内云','config-entry':'编辑器入口'};
+const meanings={KT:'节与米每秒的换算',RAD:'角度与弧度的换算',R:'角度与弧度的换算',minZoom:'最小缩放倍率',maxZoom:'最大缩放倍率',east:'中心东向位置（km）',north:'中心北向位置（km）',intensity:'台风最大持续风（kt）',rainStrength:'独立雨强（%）',eyeRadius:'风眼半径（km）',wallRadius:'眼墙外界半径（km）',stormRadius:'暴风圈半径（km）',influenceRadius:'外围影响半径（km）',rmw:'最大风速半径（km）',broadRmw:'弱系统最大风半径（km）',bandRadius:'暴风圈半径（km）',extent:'地图范围（km）',mapEast:'地图中心东向位置（km）',mapNorth:'地图中心北向位置（km）',floor:'观测楼层',motionHeading:'台风移动去向（度）',motionSpeed:'台风移速（kt）',timeScale:'模拟时间倍率',simTime:'模拟经过时间（秒）',yaw:'视线水平角（度）',pitch:'视线俯仰角（度）',freeX:'自由视点东向坐标（m）',freeY:'自由视点海拔（m）',freeZ:'自由视点南向坐标（m）',flightSpeed:'自由飞行速度（m/s）',zoom:'视野缩放倍率',surgeLevel:'当前增水高度（m）',surgeRate:'水位变化速度',crest:'保留的峰值水位（m）',holdRadius:'峰值水位保留距离（km）',visibility:'水平能见度（m）',viewVisibility:'渲染可见距离（m）',rain:'降雨强度（mm/h）',gust:'瞬时阵风（kt）',sustained:'持续风（kt）',mist:'雨雾强度',mistMix:'雨丝向碎雾的转化程度',mistOpacity:'运动雾带的不透明度',rainFall:'雨丝下落速度（m/s）',debrisCount:'空中杂物数量',debrisScale:'空中杂物尺寸',treeBend:'树木弯曲程度',threshold:'风毁起算风速（kt）',flyThreshold:'物体开始飞起的风速（kt）',resistance:'物体抗风能力',damage:'累计损伤',age:'物体受风或存活时间',breakHeight:'树干折断高度',roughness:'材质表面粗糙度',metalness:'材质金属反射程度',opacity:'材质不透明度',alpha:'材质透明程度',width:'物体宽度',height:'物体高度',depth:'物体进深',radius:'半径',distance:'距离',size:'物体尺寸',length:'物体长度',scale:'尺寸缩放',segments:'网格分段数量',levels:'垂直网格层数',count:'对象数量',phase:'运动或纹理相位',cloudPhase:'眼内云随眼墙转动的速度比例',rotationPeriod:'眼墙旋转周期（模拟秒）',angularSpeed:'眼墙旋转角速度（rad/s）',eyeClouds:'眼内低层云覆盖程度',midClouds:'眼内中层云覆盖程度',cloudHeight:'眼墙云顶高度（m）',cloudRotation:'云层旋转相位',cloudTime:'云层模拟时间',eyeSpan:'风眼的场景尺度',eyeLow:'眼内低云覆盖',eyeMid:'眼内中云覆盖',eyeSun:'风眼日照程度',deck:'连续低云覆盖',mature:'眼墙成熟程度',formation:'眼墙形成程度',eyeDevelopment:'风眼与眼墙发展程度',eyeClearing:'眼区雨停程度',hasEye:'风眼形成条件',hasStorm:'暴风圈形成条件',inner:'眼墙内侧位置',outer:'眼墙外侧位置',tilt:'眼墙向外倾斜程度',ragged:'眼墙边缘起伏',clarity:'眼墙内壁清晰程度',sunshine:'晴空日照程度',sun:'阳光强度',blue:'晴空蓝天程度',exposure:'渲染曝光',ambient:'环境散射光',direct:'直射阳光',fogDensity:'静态雨雾密度',shadows:'阴影开启条件',fov:'相机垂直视场角（度）',bearing:'方位角',inflow:'气流向中心偏转角',translation:'台风移速叠加到风场的比例',asym:'风场不对称程度',wallLevel:'眼墙外沿持续风比例',profile:'径向风速分布',rainFactor:'内圈独立雨强系数',rainPulse:'阵雨事件强度',duration:'事件持续时间',start:'事件开始时刻',heavy:'大型杂物的运动条件',medium:'中型杂物的运动条件',lift:'杂物离地抬升程度',windE:'风的东向分量',windZ:'风的南向分量',ve:'风的东向速度',vn:'风的北向速度',vx:'物体东向速度',vy:'物体垂直速度',vz:'物体南向速度',x:'东西方向的位置分量',y:'垂直方向的位置分量',z:'南北方向的位置分量',fps:'帧率统计',renderedFrames:'渲染帧数',elapsed:'累计经过时间',lastShadowTime:'阴影刷新计时',color:'显示颜色',stops:'色标节点',position:'物体位置',rotation:'物体转角',scaleFactor:'尺寸缩放比例',target:'目标状态',velocity:'运动速度',frequency:'变化或摆动频率'};
+const cssNames={'font-size':'文字字号','font-weight':'字重','line-height':'文字行距','letter-spacing':'字间距',padding:'内边距',margin:'外边距',gap:'控件间距',width:'宽度',height:'高度','min-width':'最小宽度','max-width':'最大宽度','min-height':'最小高度','max-height':'最大高度',opacity:'透明程度',border:'边框','border-radius':'圆角','border-color':'边框颜色','border-bottom':'底部分隔线','border-top':'顶部分隔线',background:'背景颜色或层次','box-shadow':'阴影范围或颜色',color:'文字或图形颜色',transition:'收起展开的过渡时间',animation:'动画时间与节奏',transform:'位移或旋转量',top:'距离上边缘的位置',bottom:'距离下边缘的位置',left:'距离左边缘的位置',right:'距离右边缘的位置','z-index':'覆盖层级','grid-template-columns':'横向栏宽比例','grid-template-rows':'纵向区域高度','aspect-ratio':'宽高比','flex-basis':'弹性布局基准宽度'};
+const formulas={'eye.development':'控制眼和眼墙随强度从无到有的发展程度（0–1）。','eye.rainClearing':'控制眼中心降雨随强度减弱的程度（0–1）。','wind.profile':'调整距中心不同距离的持续风分布。','weather.eyeSun':'计算观测点的风眼日照程度（0–1）。','weather.rain':'计算本地雨强（mm/h），影响雨丝和雨雾。','weather.visibility':'计算水平能见度（m），影响远景遮蔽和显示读数。','surge.level':'根据风速计算风暴潮目标上升高度（m）。','surge.responseSeconds':'计算水位接近目标的时间常数（模拟秒）。','eye.wallHeight':'计算眼墙云顶的高度（m）。','eye.cloudCoverage':'计算风眼内的低层与中层云覆盖程度（0–1）。','eye.angularSpeed':'计算云墙与眼内云随模拟时间转动的角速度（rad/s）。'};
+const short=text=>String(text).replace(/\s+/g,' ').slice(0,38);
+function role(e){
+ if(e.index)return'数组分量索引，指定读取哪一项';
+ if(e.callee==='clamp'&&e.argument===1)return'允许下限';if(e.callee==='clamp'&&e.argument===2)return'允许上限';
+ if(e.callee==='smooth'&&e.argument===0)return'开始平滑变化的阈值';if(e.callee==='smooth'&&e.argument===1)return'完成平滑变化的阈值';
+ if(e.callee==='Math.pow'&&e.argument===1||e.operator==='**')return'曲线幂指数';
+ if(['>','<','>=','<=','===','!==','==','!='].includes(e.operator))return'状态判定或触发的边界值';
+ if(e.operator==='*')return'幅度或换算系数';if(e.operator==='/')return'比例归一化或时间尺度';if(['+','-'].includes(e.operator))return'基准偏移量';
+ if(e.callee&&/Geometry$/.test(e.callee))return'几何体第 '+(e.argument+1)+' 个尺寸或分段参数';
+ if(e.role==='ArrayExpression')return'数组或向量的初始分量';if(e.role==='ForStatement'||e.role==='UpdateExpression')return'循环或采样步长';return'初始值或计算系数';
+}
+export function describeConfiguration(catalog){
+ for(const e of catalog.entries){
+  const mod=modules[e.file?.split('/').pop().replace('.js','')]||'界面',parts=(e.scope||'').split(' / '),term=[...parts].reverse().find(p=>meanings[p]),subject=term?meanings[term]:parts.filter(p=>p.length>2).slice(-2).join(' / '),label=subject||'当前计算分支';
+  if(e.group==='css'){e.description=e.type==='string'?'界面配色或字体样式；修改后作用于对应 CSS 位置。':(cssNames[e.cssProperty]||e.cssProperty||'布局或颜色样式')+'的数值'+(e.unit?'（'+e.unit+'）':'')+'，影响对应控件的显示。';continue;}
+  if(e.group==='html'){const attr=/\.(min|max|step|value|width|height)\./.exec(e.key)?.[1],names={min:'允许的最小输入',max:'允许的最大输入',step:'每次增减的步长',value:'初始输入值',width:'画布宽度',height:'画布高度'},hint=/aria-label=["']([^"']+)/.exec(e.context)?.[1];e.description=(hint?short(hint)+'：':'界面控件：')+(names[attr]||'输入数值')+'。';continue;}
+  if(e.group==='shader'){e.description=e.type==='string'?mod+'的着色器代码，定义云雾、光照或材质效果。':mod+'的着色计算系数，影响纹理形态、密度、颜色或混合范围；'+(e.integer?'此处要求整数。':'与附近着色器表达式共同生效。');continue;}
+  if(e.type==='string'){
+   const value=String(e.default);e.description=e.group==='ui'?'显示文案“'+short(value)+'”；用于'+mod+'的标签、状态或提示。':/^[#.][\w.# >:[\]="'-]+$/.test(value)?'界面元素选择器，用于查找或绑定对应控件。':/^(click|change|input|pointer\w+|key\w+|resize|scroll|blur|visibilitychange)$/.test(value)?'交互事件名称，决定在哪种操作发生时响应。':mod+'中的标识、格式或拼接文本“'+short(value)+'”。';continue;
+  }
+  if(e.type==='boolean'){e.description=mod+'：'+label+'的初始开关状态（开启 / 关闭）。';continue;}
+  e.description=mod+'：'+label+'的'+role(e)+'。';
+  if(parts.includes('defaults')||/^app\.(free[XYZ]|flightSpeed|zoom)\./.test(e.key))e.description='启动和“重置”时的'+label+'。';
+  if(e.scope?.includes('coastTerraces')&&parts.at(-1)==='height')e.description='海岸平台的海拔高度（m），水位超过后开始淹入。';
+  const alias=Object.entries(catalog.aliases).find(([,key])=>key===e.key)?.[0];
+  const friendly={'eye.cloudRotationRatio':'眼内低中云与眼墙的角速度比例；1 表示同步旋转。','eye.cloudClearIntensity':'眼内低中云完全清空的台风强度（kt）。','weather.eyeRainStopsAt':'风眼中心降雨完成减弱、趋于雨停的强度（kt）。','weather.eyeSunStartsAt':'风眼日照开始出现的台风强度（kt）。','weather.eyeSunFullAt':'风眼日照达到完整晴空效果的台风强度（kt）。'};
+  if(alias)e.description=friendly[alias];
+  if(/damageKinds.*threshold/.test(e.key))e.description='该类物体的风毁起算风速（kt）；超过后按受风时间累计损伤。';
+ }
+ for(const f of catalog.formulas)f.description=formulas[f.key]||'用这些输入变量计算本项结果；异常时回退内置公式。';
+ return catalog;
+}
