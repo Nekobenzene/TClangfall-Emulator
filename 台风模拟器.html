@@ -1179,6 +1179,9 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
     }
     for(const outer of [false,true])strip((a,q)=>{const p=EyeWall.section(s,a,q),fold=Math.sin(a*7-q*15+Math.sin(a*3+q*6)*.7)*230+Math.sin(a*17-q*31)*90,r=(outer?p.outer:p.inner)+fold*Math.sin(q*Math.PI);return[Math.cos(a)*r,p.y*(outer?.94:1),Math.sin(a)*r];},levels);
     strip((a,q)=>{const p=EyeWall.section(s,a,1),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q)+Math.sin(q*Math.PI)*s.height*.025,Math.sin(a)*r];},8);
+    // Close the annular cloud base, matching both side-wall bottom rings exactly.
+    // Keep the eye opening clear; the cap uses the existing cloud shader and fade.
+    strip((a,q)=>{const p=EyeWall.section(s,a,0),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q),Math.sin(a)*r];},8);
     const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
     const shell=new T.Mesh(geometry,material);shell.renderOrder=2;group.add(shell);
   }

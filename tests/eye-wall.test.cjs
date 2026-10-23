@@ -13,6 +13,14 @@ const context={console:{warn(){}}};vm.createContext(context);vm.runInContext(fs.
 const T=context.THREE,scene=new T.Scene(),wall=context.createEyeWall(T,scene),haze=new T.Color('#aabbcc');
 const state={intensity:180,eyeRadius:15,wallRadius:40,east:0,north:0,simTime:0,clearFog:false},weather={visibility:11000},observer={x:0,y:20,z:55,east:0,north:0};
 wall.update(state,weather,observer,haze);assert.ok(wall.group.visible);assert.equal(wall.group.children.length,1,'continuous shell without sphere puffs');
+wall.group.updateMatrixWorld(true);
+for(const angle of [0,.7,2.3,4.6]){
+ const p=E.section(E.shape(180,15,40),angle,0),r=(p.inner+p.outer)/2;
+ const ray=new T.Raycaster(new T.Vector3(Math.cos(angle)*r,0,55+Math.sin(angle)*r),new T.Vector3(0,1,0));
+ const hits=ray.intersectObject(wall.group.children[0],false);
+ assert.ok(hits.length&&Math.abs(hits[0].point.y-p.y*.97)<.01,'cloud underside closes the gap between inner and outer walls');
+}
+assert.equal(new T.Raycaster(new T.Vector3(0,0,55),new T.Vector3(0,1,0)).intersectObject(wall.group.children[0],false).length,0,'bottom cap leaves the eye open');
 const geometry=wall.group.children[0].geometry;state.east=1;state.north=2;wall.update(state,weather,observer,haze);assert.equal(wall.group.children[0].geometry,geometry,'translation does not rebuild geometry');assert.equal(wall.group.position.x,1000);assert.equal(wall.group.position.z,-1945);
 state.eyeRadius=22;wall.update(state,weather,observer,haze);assert.notEqual(wall.group.children[0].geometry,geometry);
 state.intensity=100;wall.update(state,weather,observer,haze);assert.ok(wall.group.visible,'wall already exists as the central rain stops');

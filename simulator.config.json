@@ -5572,7 +5572,11 @@
     "model.rainExtinction.windTail.number.0.1": 0,
     "model.rainExtinction.windTail.number.180.0": 180,
     "model.rainExtinction.windTail.number.6.1": 6,
-    "eye-wall.createEyeWall.material.depthWrite.boolean.true.0": true
+    "eye-wall.createEyeWall.material.depthWrite.boolean.true.0": true,
+    "eye-wall.createEyeWall.rebuild.p.number.0.0": 0,
+    "eye-wall.createEyeWall.rebuild.number.1.2": 1,
+    "eye-wall.createEyeWall.rebuild.number.0_06.1": 0.06,
+    "eye-wall.createEyeWall.rebuild.number.8.1": 8
   },
   "texts": {
     "html.text.0": "临海 · 台风视场模拟器",
