@@ -71,6 +71,18 @@ const SimulatorConfig=(()=>{
   for(const f of meta.formulas){const source=config.formulas[f.key];if(source&&source!==f.expression)compiled.set(f.key,expression(source,f.args));}
   return parsed;
  }
+ async function readCompanion(){
+  // file:// cannot reliably fetch JSON; the generated JS mirror keeps offline use working.
+  if(location.protocol!=='file:'){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+   try{const url=new URL('simulator.config.json',location.href);url.searchParams.set('v',Date.now().toString(36));const response=await fetch(url,{signal:controller.signal,cache:'no-store'});if(response.ok){const input=await response.json();if(input&&typeof input==='object'&&!Array.isArray(input))return{input,file:'simulator.config.json'};}}catch{}finally{clearTimeout(timer);}
+  }
+  return new Promise(resolve=>{
+   const script=document.createElement('script');let settled=false;
+   const finish=input=>{if(settled)return;settled=true;clearTimeout(timer);resolve({input,file:input?'simulator.config.js':null});};
+   const timer=setTimeout(()=>finish(null),5000),url=new URL('simulator.config.js',location.href);url.searchParams.set('v',Date.now().toString(36));script.src=url.href;script.onload=()=>finish(globalThis.TYPHOON_CONFIG||null);script.onerror=()=>finish(null);document.head.append(script);
+  });
+ }
  async function load(meta){
   catalog=meta;let input=null;
   if(new URL(location.href).searchParams.has('configPreview')&&(window.opener||window.parent!==window)){
@@ -78,11 +90,7 @@ const SimulatorConfig=(()=>{
    if(input)status.source='编辑器预览';
   }
   if(!input){
-   input=await new Promise(resolve=>{
-    const script=document.createElement('script');let settled=false;
-    const finish=value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);};
-    const timer=setTimeout(()=>finish(null),5000),url=new URL('simulator.config.js',location.href);url.searchParams.set('v',Date.now().toString(36));script.src=url.href;script.onload=()=>{status.source=globalThis.TYPHOON_CONFIG?'同目录配置':'内置';finish(globalThis.TYPHOON_CONFIG||null);};script.onerror=()=>finish(null);document.head.append(script);
-   });
+   const companion=await readCompanion();input=companion.input;status.file=companion.file;status.source=input?'同目录配置':'内置';
   }
   try{install(meta,input);}catch(e){status.errors.push(e.message);install(meta,null);status.source='内置（配置无效）';}
   applyDocument();return api;
@@ -97,7 +105,7 @@ const SimulatorConfig=(()=>{
  function formula(key,fallback,context){const fn=compiled.get(key);if(!fn)return fallback();try{return fn(context);}catch(e){if(!status.errors.some(s=>s.startsWith(key+'：')))status.errors.push(key+'：'+e.message+'，使用内置');return fallback();}}
  function defaults(meta=catalog){const result={version:1,values:{},texts:{},formulas:{}};for(const e of meta.entries)result[e.type==='string'?'texts':'values'][e.key]=e.default;for(const f of meta.formulas)result.formulas[f.key]=f.expression;return result;}
  function parseFile(text){text=text.replace(/^\uFEFF/,'').trim();if(text.startsWith('{'))return JSON.parse(text);const m=/^(?:globalThis|window)\.TYPHOON_CONFIG\s*=\s*([\s\S]*?)\s*;?\s*$/.exec(text);if(!m)throw Error('仅接受 JSON 或编辑器导出的 TYPHOON_CONFIG 配置');return JSON.parse(m[1]);}
- const api={load,install,normalize,expression,formula,defaults,parseFile,diagnostics:()=>({...status,errors:[...status.errors],unknown:[...status.unknown],overrides:Object.keys(config.values).length+Object.keys(config.texts).length+compiled.size}),getCatalog:()=>catalog};
+ const api={load,readCompanion,install,normalize,expression,formula,defaults,parseFile,diagnostics:()=>({...status,errors:[...status.errors],unknown:[...status.unknown],overrides:Object.keys(config.values).length+Object.keys(config.texts).length+compiled.size}),getCatalog:()=>catalog};
  return api;
 })();
 globalThis.SimulatorConfig=SimulatorConfig;

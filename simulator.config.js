@@ -6909,6 +6909,8 @@ globalThis.TYPHOON_CONFIG = {
     "app.string.68cc88b7.0": "loading",
     "app.string.68cc88b7.1": "loading",
     "app.string.4d3ffbb9.0": "renderError",
+    "app.config.string.9b61ad43.0": "undefined",
+    "app.config.source.string.b554e6ea.0": "内置",
     "style.color.0": "#10191d",
     "style.color.1": "#172328",
     "style.color.2": "#2a393e",

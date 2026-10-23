@@ -5,13 +5,22 @@
 
 以临海住宅与自由飞行视角观察台风的交互式 Three.js 模拟器。调整台风位置、强度、风圈结构、雨强与移动，观察风雨、能见度、螺旋眼墙、景物风毁及简化风暴潮的变化。所有运行资源内嵌，支持单文件离线使用。
 
-**[在线体验](https://nekobenzene.github.io/TClangfall-Emulator/)** · [下载离线 HTML](https://github.com/Nekobenzene/TClangfall-Emulator/raw/refs/heads/main/%E5%8F%B0%E9%A3%8E%E6%A8%A1%E6%8B%9F%E5%99%A8.html) · [项目源码](https://github.com/Nekobenzene/TClangfall-Emulator)
+**[在线体验（仅内置参数）](https://nekobenzene.github.io/TClangfall-Emulator/)** · [下载内置参数版 HTML](https://github.com/Nekobenzene/TClangfall-Emulator/raw/refs/heads/main/%E5%8F%B0%E9%A3%8E%E6%A8%A1%E6%8B%9F%E5%99%A8.html) · [可配置版](https://nekobenzene.github.io/TClangfall-Emulator/台风模拟器-可配置版.html) · [项目源码](https://github.com/Nekobenzene/TClangfall-Emulator)
 
 ![风眼云墙与海岸观测视场](docs/images/preview.png)
 
 ## 快速开始
 
 打开 **台风模拟器.html** 即可使用。Three.js、贴图、地图、建筑和天气均已内嵌，无需联网或安装。
+
+本地与 GitHub 仓库同时保留以下两套 HTML，初始内置参数和模拟功能相同：
+
+| 版本 | 文件 | 外部配置与编辑器 |
+| --- | --- | --- |
+| 仅内置参数版（线上首页） | [台风模拟器.html](台风模拟器.html) | 只使用内置参数，不读取外部配置，没有编辑器入口；运行时的滑动条和地图操作照常可用 |
+| 可配置版 | [台风模拟器-可配置版.html](台风模拟器-可配置版.html) | 保留完整内置参数作为回退，优先读取同目录配置；“使用指南”底部提供独立编辑器入口 |
+
+[simulator.config.json](simulator.config.json) 已配好全部当前默认数值、文案和公式，供可配置版读取和编辑器导入；[simulator.config.js](simulator.config.js) 是对应的离线兼容副本。需要离线编辑时，将可配置版、`config-editor.html` 和配置文件保存在同一目录。两套模拟器各自单独一个 HTML 也可按内置值运行。
 
 默认收起右侧设置栏及各参数分类，优先展示观测视场。点击“台风设置”展开，再点分类标题查看参数。顶部“使用指南”提供操作流程和 8 步交互引导：环视缩放、楼房楼层、地图定位、风雨强度、移动时间、自由飞行、风暴潮与风毁、全屏显示。也可按主题直接跳转，边看说明边操作；结束或按 Esc 会恢复进入前的面板状态，保留主动修改的参数。手机横竖屏均可使用。
 
@@ -21,18 +30,18 @@
 
 ## 配置与交互编辑器
 
-**[在线配置编辑器](https://nekobenzene.github.io/TClangfall-Emulator/config-editor.html)**，也可双击本地 `config-editor.html`。模拟器“使用指南”底部有入口。
+**[在线配置编辑器](https://nekobenzene.github.io/TClangfall-Emulator/config-editor.html)**，也可双击本地 `config-editor.html`。仅可配置版的“使用指南”底部有入口；编辑器打开和预览的都是可配置版。线上首页不含编辑器入口，也不会受到外部配置改动影响。
 
 1. 编辑器分为常用参数、界面文案、计算公式、高级数值、布局与样式、着色器及其他字符串。支持全文搜索、按文件筛选、只看已修改、单项恢复；高级项附源码位置、上下文和内置值。公式提供可修改的样例输入和即时计算结果。
-2. 点“预览修改”，在新窗口运行当前修改，不写入原文件。点“导出配置 .js”得到 `simulator.config.js`，放在模拟器 HTML 同一目录，重新加载生效；支持的浏览器也可点“保存到文件”选择并写回该文件。默认只导出修改项，勾选“导出完整配置”包含全部内置默认。
-3. 模拟器优先读取同目录 `simulator.config.js`，HTTP、GitHub Pages 和双击本地 HTML 均支持。文件不存在、读取失败、字段缺失或单项类型错误时使用对应内置值；非法或非有限公式结果回退原有计算。原源码的硬编码及 HTML 内嵌默认仍保留，单独一个 HTML 也能运行。
+2. 点“预览修改”，在新窗口运行当前修改，不写入原文件。点“导出配置 .json”得到 `simulator.config.json`，放在可配置版 HTML 同一目录，通过 HTTP 或 GitHub Pages 访问时重新加载生效；支持的浏览器也可点“保存 JSON 到文件”选择并写回该文件。默认只导出修改项，勾选“导出完整配置”包含全部内置默认。双击离线 HTML 时，另点“导出离线配置 .js”，将 `simulator.config.js` 保存到同目录。
+3. 可配置版通过 HTTP 访问时先读取 `simulator.config.json`；JSON 不存在或不能解析时尝试同目录 `simulator.config.js`；双击本地 `file://` HTML 时直接读取 JS 副本，以兼容浏览器的本地 JSON 读取限制。两份均无法读取时使用内置参数。字段缺失或类型错误时逐项使用内置值，非法或非有限公式结果回退原有计算。原源码的硬编码及 HTML 内嵌默认仍保留。仅内置参数版始终不加载这两份配置。
 4. `config-catalog.json` 是生成的参数目录，包含全部第一方运行代码中的数值 / 布尔常量和字符串、HTML 可见文本 / 控件数值属性，以及 CSS、GLSL 数值。当前约 7000 项，包含数组索引和采样数等高级结构项；第三方 Three.js 源码不作改动。CSS 中的颜色 HEX、JS 中的格式字符串等可通过对应完整字符串编辑。
 5. 参数值、计算公式和说明文案分别配置。改写公式后，其内部常量以新公式为准；保留默认公式时仍使用原执行路径，数值项覆盖照常生效。改写完整着色器文本后，其原位置对应的数值覆盖不再叠加。单位约定与内置模型一致：风速 kt、距离 km、风暴潮和能见度 m、角速度 rad/s。
 
-最小配置示例（其余项全部使用 HTML 内置值）：
+最小 `simulator.config.json` 示例（其余项使用可配置版 HTML 内置值）：
 
-```javascript
-globalThis.TYPHOON_CONFIG = {
+```json
+{
   "version": 1,
   "values": {
     "eye.cloudClearIntensity": 180,
@@ -45,16 +54,16 @@ globalThis.TYPHOON_CONFIG = {
   "formulas": {
     "weather.visibility": "clamp(14000 / (1 + rain * 0.15 + (ms / 20) ** 2), 80, 14000)"
   }
-};
+}
 ```
 
-常用别名会映射到目录中的具体数值键，同一配置同时存在别名与具体键时，别名优先。文案键可在编辑器搜索原文字后获取。JSON 导出用于备份和导入；启动时自动读取的文件名为 `simulator.config.js`。
+常用别名会映射到目录中的具体数值键，同一配置同时存在别名与具体键时，别名优先。文案键可在编辑器搜索原文字后获取。JSON 同时用于自动加载、备份和导入；离线 JS 文件内容为 `globalThis.TYPHOON_CONFIG = { ... };`。在线 JSON 与离线 JS 如同时存在，请在修改后分别导出以保持一致，或运行一次构建同步。
 
 可编辑公式包括 `eye.development`、`eye.rainClearing`、`wind.profile`、`weather.eyeSun`、`weather.rain`、`weather.visibility`、`surge.level`、`surge.responseSeconds`、`eye.wallHeight`、`eye.cloudCoverage`、`eye.angularSpeed`。每项可用变量列在编辑器中；支持算术、比较、条件运算、`clamp` / `smooth` 和常见 `Math` 函数，采用表达式解析器求值，不使用 `eval` / `new Function`。语法错误、未知变量、非法运算或非有限结果均可恢复到内置计算。
 
 眼内低层、中层云现默认与眼墙共用同一角速度、相位与模拟时钟，修正此前眼内云仅按眼墙 0.28 倍速度旋转的差异。`eye.cloudRotationRatio` 默认 1，可自行调整。
 
-开发时 `node build.mjs` 更新参数目录和两份 HTML，保留已有配置文件；仅在需要主动重置配置文件时运行 `node build.mjs --reset-config`。未知旧键会被忽略，可在编辑器导入时查看数量；运行时配置来源与回退信息可通过 `SimulatorConfig.diagnostics()` 查看。`node build.mjs --pages` 同时把编辑器、配置文件和目录复制到静态网站。
+开发时 `node build.mjs` 同时生成两套模拟器 HTML、编辑器和参数目录，保留已有 `simulator.config.json`，并以该 JSON 同步生成离线 JS 副本。首次没有 JSON 时从已有 JS 配置迁移，否则使用内置默认；仅在需要主动重置配置时运行 `node build.mjs --reset-config`。未知旧键会被忽略，可在编辑器导入时查看数量；可配置版的配置来源、文件名与回退信息可通过 `SimulatorConfig.diagnostics()` 查看。`node build.mjs --pages` 将内置参数版作为首页，同时保留可配置版、编辑器、配置文件和目录的独立地址。
 
 ## 风场与天气
 
@@ -128,7 +137,7 @@ node --test tests/*.test.cjs
 
 ### 静态托管
 
-`node build.mjs --pages` 会额外生成 `_site/index.html`，可直接部署到任意静态网页托管服务。GitHub Pages 通过 [Pages 工作流](.github/workflows/pages.yml) 在每次推送到 `main` 时自动构建、运行全部测试并部署；也可以在 Actions 中手动运行。仓库 Settings → Pages 的发布来源应设为 **GitHub Actions**。
+`node build.mjs --pages` 会额外生成 `_site/index.html`，内容与仅内置参数版 `台风模拟器.html` 完全一致，没有编辑器入口，也不读取外部配置。两套 HTML、编辑器和配好的 JSON / JS 同时复制到 `_site/`，各自可单独访问或下载。修改 JSON 影响可配置版；修改线上首页的内置默认需要调整 `src/` 并重新构建。GitHub Pages 通过 [Pages 工作流](.github/workflows/pages.yml) 在每次推送到 `main` 时自动构建、运行全部测试并部署；也可以在 Actions 中手动运行。仓库 Settings → Pages 的发布来源应设为 **GitHub Actions**。
 
 ### 目录
 
@@ -142,9 +151,10 @@ node --test tests/*.test.cjs
 | `src/scenery.js`、`src/flood-debris.js` | 风响应景物、风毁与漂浮物 |
 | `src/config-runtime.js`、`tools/config-build.mjs` | 外部配置、逐项回退、表达式求值与自动参数目录 |
 | `src/config-editor.*`、`config-editor.html` | 交互配置编辑器的源码与独立网页 |
-| `simulator.config.js`、`config-catalog.json` | 可修改配置文档与生成的参数索引 |
+| `simulator.config.json`、`simulator.config.js`、`config-catalog.json` | 配好的完整 JSON、离线 JS 副本与生成的参数索引 |
 | `tests/` | 模型、渲染结构、操作逻辑与打包检查 |
-| `台风模拟器.html` | 构建后的单文件离线版本 |
+| `台风模拟器.html` | 仅内置参数版，无编辑器入口；线上首页采用此版本 |
+| `台风模拟器-可配置版.html` | 内置参数 + 外部配置读取 + 编辑器入口的版本 |
 
 ## 许可证
 
@@ -175,4 +185,4 @@ node --test tests/*.test.cjs
 
 浏览器触屏回归检查（需本地 Playwright 与 Edge）：`node tests/mobile-layout.browser.cjs`，覆盖普通与全屏、横竖屏、摇杆触控、读数与地图、净览及视角面板。
 
-配置浏览器验证：`node tests/config.browser.cjs`，覆盖默认计算一致性、数值 / 静态和动态文案 / CSS / GLSL / 公式覆盖、无效与缺失配置回退、编辑器修改 / 导出 / 跨窗口预览、手机布局，以及本地 `file://` 自动读取与预览。另有 `guide.browser.cjs` 和 `compact-layout.browser.cjs` 检查引导、紧凑布局和分类动画。
+配置浏览器验证：`node tests/config.browser.cjs`，覆盖内置版无编辑器且不受外部配置影响、可配置版 JSON 优先与 JS 回退、默认计算一致性、数值 / 静态和动态文案 / CSS / GLSL / 公式覆盖、无效与缺失配置回退、编辑器修改 / 两种格式导出 / 跨窗口预览、手机布局，以及本地 `file://` 自动读取与预览。另有 `guide.browser.cjs` 和 `compact-layout.browser.cjs` 检查引导、紧凑布局和分类动画。
