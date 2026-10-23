@@ -14,7 +14,6 @@ const T=context.THREE,scene=new T.Scene(),wall=context.createEyeWall(T,scene),ha
 const state={intensity:180,eyeRadius:15,wallRadius:40,east:0,north:0,simTime:0,clearFog:false},weather={visibility:11000},observer={x:0,y:20,z:55,east:0,north:0};
 wall.update(state,weather,observer,haze);assert.ok(wall.group.visible);assert.equal(wall.group.children.length,1,'continuous shell without sphere puffs');
 const geometry=wall.group.children[0].geometry;state.east=1;state.north=2;wall.update(state,weather,observer,haze);assert.equal(wall.group.children[0].geometry,geometry,'translation does not rebuild geometry');assert.equal(wall.group.position.x,1000);assert.equal(wall.group.position.z,-1945);
-geometry.computeBoundingBox();assert.ok(geometry.boundingBox.min.y<-300,'wall extends below its fully transparent lower feather');assert.equal(wall.group.children[0].material.depthWrite,false,'faded skirt does not cut foreground depth');
 state.eyeRadius=22;wall.update(state,weather,observer,haze);assert.notEqual(wall.group.children[0].geometry,geometry);
 state.intensity=100;wall.update(state,weather,observer,haze);assert.ok(wall.group.visible,'wall already exists as the central rain stops');
 state.intensity=180;state.east=300;wall.update(state,weather,observer,haze);assert.ok(!wall.group.visible,'outside sunny sky gets no observer-centred ring');

@@ -16,5 +16,5 @@ fs.mkdirSync(path.join(root,'tmp'),{recursive:true});
  }
  assert.equal(rain[0].rain,0);assert.ok(rain[1].rain>.05);assert.ok(rain[2].rain>rain[1].rain);assert.ok(rain.at(-1).rain>60);
  await page.setViewportSize({width:844,height:390});await page.locator('#view').screenshot({path:path.join(root,'tmp','眼墙入口-手机横屏.png')});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- assert.deepEqual(errors,[]);console.log('PASS: actual feathered eye-edge shader, rain begins at 14.8 km and reaches wall strength by 15.3 km, landscape and no WebGL errors.');console.log(JSON.stringify(rain));
+ assert.deepEqual(errors,[]);console.log('PASS: restored eye-wall shader, rain begins at 14.8 km and reaches wall strength by 15.3 km, landscape and no WebGL errors.');console.log(JSON.stringify(rain));
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);server.close();process.exitCode=1;});

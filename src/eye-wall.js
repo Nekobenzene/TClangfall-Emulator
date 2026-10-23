@@ -40,9 +40,9 @@ const EyeWall=(()=>{
 
 function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
   const group=new T.Group();group.name='按实际半径渲染的眼墙';group.visible=false;scene.add(group);
-  const uniforms={...eyeUniforms,opacity:{value:0},clarity:{value:0},cloudHeight:{value:16000},cloudBase:{value:220},visibility:{value:11000},
+  const uniforms={...eyeUniforms,opacity:{value:0},clarity:{value:0},cloudHeight:{value:16000},visibility:{value:11000},
     haze:{value:new T.Color('#b9c7ca')},sunDir:{value:new T.Vector3(1100,640,-950).normalize()}};
-  const material=new T.ShaderMaterial({uniforms,side:T.DoubleSide,transparent:true,depthWrite:false,toneMapped:false,
+  const material=new T.ShaderMaterial({uniforms,side:T.DoubleSide,transparent:true,depthWrite:true,toneMapped:false,
     extensions:{derivatives:true},
     vertexShader:`varying vec3 localP;varying vec3 worldP;varying vec3 cloudNormal;
       void main(){vec4 p=vec4(position,1.);vec3 n=normal;
@@ -53,7 +53,7 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
         gl_Position=projectionMatrix*viewMatrix*w;
         #include <logdepthbuf_vertex>
       }`,
-    fragmentShader:`uniform float opacity;uniform float clarity;uniform float cloudHeight;uniform float cloudBase;uniform float visibility;
+    fragmentShader:`uniform float opacity;uniform float clarity;uniform float cloudHeight;uniform float visibility;
       uniform vec3 haze;uniform vec3 sunDir;varying vec3 localP;varying vec3 worldP;varying vec3 cloudNormal;
       #include <logdepthbuf_pars_fragment>
       ${EYE_CLOUD_GLSL}
@@ -77,9 +77,8 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
         float distanceToCloud=length(worldP-cameraPosition);
         float aerial=1.-exp(-distanceToCloud/(max(visibility,250.)*(3.4+9.*h)));
         color=mix(color,haze,aerial*.86);
-        float lowFade=smoothstep(cloudBase-320.,cloudBase+900.,localP.y+(broad-.5)*380.);
-        color=mix(haze,color,smoothstep(cloudBase-150.,cloudBase+1000.,localP.y));
-        if(lowFade<.002)discard;
+        float lowFade=smoothstep(100.,650.,localP.y);
+        if(lowFade<.01)discard;
         vec4 foreground=eyeCloudAlong(cameraPosition,normalize(worldP-cameraPosition),distanceToCloud);
         color=mix(color,foreground.rgb,foreground.a);
         gl_FragColor=vec4(color,opacity*lowFade);
@@ -96,9 +95,7 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
       for(let j=0;j<=rows;j++)for(let i=0;i<=segments;i++){const a=i/segments*Math.PI*2;vertices.push(...point(a,j/rows));}
       for(let j=0;j<rows;j++)for(let i=0;i<segments;i++){const a=start+j*(segments+1)+i,b=a+segments+1;indices.push(a,b,a+1,b,b+1,a+1);}
     }
-    // Extend below the visible cloud base so the alpha feather reaches zero before
-    // any mesh edge. The lower skirt blends into haze rather than exposing a cut ring.
-    for(const outer of [false,true])strip((a,q)=>{const u=q*1.05-.05,p=EyeWall.section(s,a,Math.max(0,u)),fold=Math.sin(a*7-u*15+Math.sin(a*3+u*6)*.7)*230+Math.sin(a*17-u*31)*90,r=(outer?p.outer:p.inner)+fold*Math.sin(Math.max(0,u)*Math.PI),y=u<0?s.base+u*(s.height-s.base):p.y;return[Math.cos(a)*r,y*(outer?.94:1),Math.sin(a)*r];},levels+5);
+    for(const outer of [false,true])strip((a,q)=>{const p=EyeWall.section(s,a,q),fold=Math.sin(a*7-q*15+Math.sin(a*3+q*6)*.7)*230+Math.sin(a*17-q*31)*90,r=(outer?p.outer:p.inner)+fold*Math.sin(q*Math.PI);return[Math.cos(a)*r,p.y*(outer?.94:1),Math.sin(a)*r];},levels);
     strip((a,q)=>{const p=EyeWall.section(s,a,1),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q)+Math.sin(q*Math.PI)*s.height*.025,Math.sin(a)*r];},8);
     const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
     const shell=new T.Mesh(geometry,material);shell.renderOrder=2;group.add(shell);
@@ -118,7 +115,7 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
     group.visible=alpha>.001;if(!group.visible)return{sunBlocked:false,visible:false};
     const key=[state.intensity,state.eyeRadius,state.wallRadius].join('/');if(key!==signature){rebuild(current);signature=key;}
     group.position.set(state.east*1000,0,55-state.north*1000);
-    uniforms.opacity.value=alpha;uniforms.clarity.value=clarity;uniforms.cloudHeight.value=current.height;uniforms.cloudBase.value=current.base;uniforms.visibility.value=viewVisibility;uniforms.haze.value.copy(haze);
+    uniforms.opacity.value=alpha;uniforms.clarity.value=clarity;uniforms.cloudHeight.value=current.height;uniforms.visibility.value=viewVisibility;uniforms.haze.value.copy(haze);
     return{sunBlocked:EyeWall.intersects(current,{x:observer.x-group.position.x,y:observer.y,z:observer.z-group.position.z},uniforms.sunDir.value),formation:current.formation,visible:true,height:current.height,rotationPeriod:Math.PI*2/omega};
   }
   return{update,group};
