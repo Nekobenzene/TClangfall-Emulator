@@ -16,7 +16,7 @@
   let renderer,scene,camera,sky,sea,rain,rainPositions,rainGeo,rainMat,debris,debrisItems=[],trees=[],flag,mist,mistItems=[],sunDisk,sunGlow,cumulus,sunLight,ambientLight,foam,foamItems=[],impacts,impactItems=[],surgeLevel=0;
   let surgeRate=0,wideLens,mouseLookEnabled=false,hadPointerLock=false,hoverPointer=null,edgePan={x:0,y:0},lastShadowTime=-1,lastShadowX=Infinity,lastShadowZ=Infinity;
   const fullscreenActive=()=>document.fullscreenElement===view||view.classList.contains('is-fullscreen');
-  let windScene,floodDebris,eyeWall,eyeClouds,eyeViewState={visible:false},particleCamera=null,surgeMemory={level:0,crest:0,holdRadius:0};
+  let windScene,floodDebris,eyeWall,eyeClouds,rainFog,eyeViewState={visible:false},particleCamera=null,surgeMemory={level:0,crest:0,holdRadius:0};
   let sceneReady = false, last = performance.now(), renderedFrames = 0, fps = 60, elapsed = 0, dragging = null;
   let audioCtx, noiseSource, soundGain, lowFilter;
   const view = $('view'), map = $('map'), mapCtx = map.getContext('2d'), glass = $('glass'), glassCtx = glass.getContext('2d');
@@ -108,7 +108,7 @@
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
     wideLens=createWideLens(T,renderer);
     $('sceneMount').appendChild(renderer.domElement);
-    scene = new T.Scene(); scene.background = new T.Color('#879498'); scene.fog = new T.FogExp2('#9ba8aa', .0019);
+    scene = new T.Scene(); scene.background = new T.Color('#879498'); scene.fog = new T.FogExp2('#9ba8aa', .0019);rainFog=createRainFog(T);
     camera = new T.PerspectiveCamera(58, 1, .1, 800000); camera.position.set(0, 18, 55);
     const ambient = new T.HemisphereLight('#c1d0d4', '#596364', 2.3); ambientLight=ambient;scene.add(ambient);
     const sun = new T.DirectionalLight('#c6d2d2', 1.2);sunLight=sun; sun.position.set(1100,640,-950); scene.add(sun);scene.add(sun.target);
@@ -274,10 +274,15 @@
       items.forEach((v,i)=>{obj.position.set(v[0],v[1],v[2]);obj.scale.set(v[3],v[4],v[5]);obj.rotation.y=v[6];obj.updateMatrix();mesh.setMatrixAt(i,obj.matrix);});mesh.receiveShadow=true;mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);
     }
     // Weather particles use world-space velocity; moving the storm reverses the flow correctly.
-    const rainCount=48000;rainPositions=new Float32Array(rainCount*6);const initial=new Float32Array(rainCount*3);
+    const rainCount=120000;rainPositions=new Float32Array(rainCount*6);const initial=new Float32Array(rainCount*3);
     for(let i=0;i<rainCount;i++){const near=i%3!==0;initial[i*3]=randomRange(near?-62:-145,near?62:145);initial[i*3+1]=randomRange(near?-8:-15,near?67:115);initial[i*3+2]=randomRange(near?-15:-125,near?120:105);}
     rainGeo=new T.BufferGeometry();rainGeo.setAttribute('position',new T.BufferAttribute(rainPositions,3).setUsage(T.DynamicDrawUsage));
+    rainGeo.setAttribute('rainPatchAlpha',new T.BufferAttribute(new Float32Array(rainCount*2).fill(1),1).setUsage(T.DynamicDrawUsage));
     rainMat=new T.LineBasicMaterial({color:'#c8dddf',transparent:true,opacity:.3,depthWrite:false});rain=new T.LineSegments(rainGeo,rainMat);rain.frustumCulled=false;rain.userData.points=initial;scene.add(rain);
+    rainMat.onBeforeCompile=shader=>{
+      shader.vertexShader='attribute float rainPatchAlpha;varying float vRainPatchAlpha;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRainPatchAlpha=rainPatchAlpha;');
+      shader.fragmentShader='varying float vRainPatchAlpha;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.a*=vRainPatchAlpha;');
+    };
     debris=new T.InstancedMesh(new T.PlaneGeometry(1,1),mat('#a1a28d',{side:T.DoubleSide}),340);debris.instanceMatrix.setUsage(T.DynamicDrawUsage);debris.frustumCulled=false;scene.add(debris);
     for(let i=0;i<340;i++){
       debrisItems.push({x:randomRange(-100,100),y:randomRange(1,60),z:randomRange(-90,76),size:randomRange(.12,.60),spin:random()*6,kind:random(),vx:0,vz:0});
@@ -296,7 +301,7 @@
 
     renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('renderError').hidden=false;$('renderError').textContent='图形上下文已丢失，请重新打开或刷新此页面。地图仍可使用。';});
     scene.traverse(o=>{if(o.isMesh&&o.material?.type==='MeshStandardMaterial')o.receiveShadow=true;});
-    sceneReady=true;resizeCanvases();updateCamera();
+    rainFog.install(scene);sceneReady=true;resizeCanvases();updateCamera();
   }
 
   function updateCamera() {
@@ -317,6 +322,7 @@
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
     const visual=M.visuals(Math.max(kt,weather.gust*.85),weather.rain),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
+    rainFog.update(dt,weather,visual,state.clearFog,scene);
     const anchor=camera.position,previous=particleCamera||anchor;
     let cameraDelta={x:anchor.x-previous.x,y:anchor.y-previous.y,z:anchor.z-previous.z};
     // Rebase instant viewpoint changes; continuous flight retains world-space particles.
@@ -324,16 +330,20 @@
     particleCamera={x:anchor.x,y:anchor.y,z:anchor.z};
     const relativeRain=ObserverCamera.particleMotion({x:vx,y:-fall,z:vz},cameraDelta,dt,viewDt),wrap=ObserverCamera.wrap;
     rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);mist.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);
-    const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*22000*visual.rainDensity));
+    const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*55000*visual.rainDensity));
     rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022,.21,.68);
-    const p=rain.userData.points;
+    const p=rain.userData.points,patchAlpha=rainGeo.attributes.rainPatchAlpha.array,patchFrame=renderedFrames%6;
     for(let i=0;i<count;i++){
       const k=i*3,j=i*6;p[k]+=relativeRain.x;p[k+1]+=relativeRain.y;p[k+2]+=relativeRain.z;
       const near=i%3!==0,xmax=near?62:145,zmin=near?-15:-125,zmax=near?120:105,ymin=near?-8:-15;
       p[k]=wrap(p[k],-xmax,xmax);p[k+2]=wrap(p[k+2],zmin,zmax);p[k+1]=wrap(p[k+1],ymin,ymin+(near?75:130));
-      const trail=visual.rainTrail*(1+.16*Math.sin(i*7.9))*(1+.25*M.smooth(55,180,weather.rain));
+      const trail=visual.rainTrail*(1+.65*Math.sin(i*7.9))*(1+.25*M.smooth(55,180,weather.rain));
       rainPositions[j]=p[k];rainPositions[j+1]=p[k+1];rainPositions[j+2]=p[k+2];rainPositions[j+3]=p[k]-relativeRain.vx*trail;rainPositions[j+4]=p[k+1]-relativeRain.vy*trail;rainPositions[j+5]=p[k+2]-relativeRain.vz*trail;
-    }rainGeo.attributes.position.needsUpdate=true;
+      if(i%6===patchFrame){
+        const density=rainFog.densityAt(rain.position.x+p[k],rain.position.y+p[k+1],rain.position.z+p[k+2]),seed=((Math.imul(i,2654435761)>>>0)/4294967296);
+        const alpha=density<1&&seed>density?.06:Math.min(1.8,density);patchAlpha[i*2]=patchAlpha[i*2+1]=alpha;
+      }
+    }rainGeo.attributes.position.needsUpdate=true;rainGeo.attributes.rainPatchAlpha.needsUpdate=true;
     const debrisKt=Math.max(kt,weather.gust*.9),limit=Math.round(M.visuals(debrisKt,weather.rain).debrisCount*M.debrisSupply(weather.ve,weather.vn)),obj=debris.userData.object;let active=0;
     for(let i=0;i<limit;i++){
       const p=debrisItems[i],motion=M.debrisMotion(debrisKt,p.kind);if(!motion.active)continue;
@@ -562,7 +572,11 @@
   // Read-only inspection hook for functional verification, no external services.
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
-  window.TyphoonSimulator.rainDiagnostics=()=>({count:rainGeo?.drawRange.count/2,mistCount:mist?.count,mistOpacity:mist?.material.opacity,trailLength:rainPositions?Math.hypot(rainPositions[0]-rainPositions[3],rainPositions[1]-rainPositions[4],rainPositions[2]-rainPositions[5]):0});
+  window.TyphoonSimulator.rainDiagnostics=()=>{
+    const alpha=rainGeo?.attributes.rainPatchAlpha.array,count=rainGeo?.drawRange.count/2,patchSamples=[];
+    for(let i=0;i<Math.min(count||0,256);i++)patchSamples.push(alpha[i*2]);
+    return{count,mistCount:mist?.count,mistOpacity:mist?.material.opacity,trailLength:rainPositions?Math.hypot(rainPositions[0]-rainPositions[3],rainPositions[1]-rainPositions[4],rainPositions[2]-rainPositions[5]):0,patchRange:patchSamples.length?[Math.min(...patchSamples),Math.max(...patchSamples)]:[0,0],field:rainFog?.diagnostics()};
+  };
   window.TyphoonSimulator.eyeEnvironment=(intensity=state.intensity,distance=0)=>EyeWall.environment(intensity,state.eyeRadius,state.stormRadius,distance);
   window.TyphoonSimulator.eyeMotion=()=>({wallPhase:eyeWall?.group.rotation.y,cloudRotation:eyeClouds?.uniforms.eyeRotation.value.toArray(),config:typeof SimulatorConfig==='undefined'?{source:'内置'}:SimulatorConfig.diagnostics()});
   // Keep the original caption defaults available while reducing visible duplicate text.

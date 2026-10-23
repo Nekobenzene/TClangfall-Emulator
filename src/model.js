@@ -89,10 +89,10 @@
     return diameter>=.6?9.65-10.3*Math.exp(-.6*diameter):(9.65-10.3*Math.exp(-.36))*Math.pow(Math.max(0,diameter)/.6,1.15);
   }
   function rainOptics(kt,rain){
-    const rate=Math.max(0,rain),mistMix=configured('rain.mistTransition',()=>smooth(65,110,kt),{kt,rain});
-    // Effective fine-rain spectrum: the wind/diameter relation is an artistic control,
-    // NOT an observed universal atomization law. Normalize number to conserve rain flux.
-    const diameter=configured('rain.effectiveDiameter',()=>(.85+.40*Math.log1p(Math.max(0,rain)/10))*(1-.82*mistMix),{kt,rain:rate,mistMix});
+    const rate=Math.max(0,rain),mistMix=configured('rain.mistTransition',()=>smooth(45,135,kt),{kt,rain});
+    // Physical spectrum is not forcibly shrunk by ground-relative horizontal wind.
+    // The broad 45–135 kt particle refinement is a separate display transformation.
+    const diameter=configured('rain.effectiveDiameter',()=>(.85+.40*Math.log1p(Math.max(0,rain)/10)),{kt,rain:rate,mistMix});
     let flux=0,area=0,volume=0,number=0;
     for(let i=0;i<16;i++){
       const x=.125+i*.25,d=Math.max(.01,diameter*x),m=d/1000,weight=x*x*Math.exp(-3*x),v=dropFall(d);
@@ -104,9 +104,14 @@
   function visuals(kt,rain){
     const severe=clamp((kt-35)/145,0,1.17),optics=rainOptics(kt,rain),mistMix=optics.mistMix,curtain=smooth(15,100,rain);
     return {debrisCount:Math.min(340,Math.round(280*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
-      rainFall:optics.fallSpeed,rainDensity:1+1.18*mistMix,dropDiameter:optics.diameter,
-      rainTrail:.05*(1-mistMix)+.00065*mistMix,curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
+      rainFall:optics.fallSpeed*(2.8-2.25*mistMix),rainDensity:1+1.18*mistMix,dropDiameter:optics.diameter*(1-.76*mistMix),
+      rainTrail:.0016+.0484*Math.pow(1-mistMix,1.35),curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
       treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:clamp(.65*curtain+.65*mistMix*smooth(1,30,rain),0,1)};
+  }
+  function rainExtinction(rain,mist=0,dropExtinction=0){
+    // User-specified wet-environment calibration, not a universal pure-raindrop law.
+    // 75 mm/h in calm air -> 350 m MOR; wind can alter extinction by at most 10%.
+    return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*(1+.10*mist),{rain,mist,dropExtinction});
   }
   function debrisMotion(kt,kind){
     const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?100:medium?58:28,lift=smooth(threshold,heavy?195:medium?150:110,kt);
@@ -186,13 +191,13 @@
     const breakMix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius),dryBreak=(1-smooth(.02,.18,rainPulse))*breakMix;
     const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
-    rain=configured('weather.rain',()=>rain,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
-    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=optics.extinction;
+    rain=configured('weather.rain',()=>rain*.90,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
+    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction);
     // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
     const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
     return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
-  const api={sample,meanWind,structure,visuals,rainOptics,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
+  const api={sample,meanWind,structure,visuals,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.StormModel=api;
 })(typeof window!=='undefined'?window:globalThis);
