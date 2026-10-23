@@ -27,36 +27,40 @@ function createWideLens(T,renderer){
   }
   return{render};
 }
-/* World-space rain concentration: translated by the flow, with slow deformation. */
+/* Short, gentle concentration ripples. Rain ~1.45 Hz, fog ~1 Hz at a fixed observer. */
 const RainField=(()=>{
   const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
-  function density(x,y,z,shift,phase){
-    x-=shift.x;y-=shift.y;z-=shift.z;
-    const warp=Math.sin((x+z)*.006+phase*.08)*22;
-    const a=Math.sin((x+warp)*.017+y*.019),b=Math.sin((z-warp*.7)*.023-y*.013+phase*.07),c=Math.sin((x*.8+z)*.049+y*.028-phase*.11);
-    return .12+1.76*smooth(.18,.82,.5+.5*(.55*a+.30*b+.15*c));
+  function density(x,y,z,shift,phase,wave={axis:{x:1,y:0,z:0},wavelength:12,travel:0},pace=1){
+    const axis=wave.axis,along=((x*axis.x+y*axis.y+z*axis.z)*Math.PI*2/wave.wavelength-wave.travel)*pace,px=x-shift.x,py=y-shift.y,pz=z-shift.z;
+    const warp=.18*Math.sin((px*axis.z-pz*axis.x)*.15+py*.06+phase*.4);
+    const ripple=.76*Math.sin(along+warp)+.24*Math.sin(along*1.13+1.7+warp*.7);
+    const broad=Math.sin((x-shift.x)*.08+(y-shift.y)*.05+(z-shift.z)*.11+phase*.4);
+    return 1+.18*ripple+.06*broad;
   }
-  const glsl=`uniform vec3 rainFogShift;uniform float rainFogPhase;uniform float rainFogAmount;
-    float rainFieldDensity(vec3 world){
+  const glsl=`uniform vec3 rainFogShift;uniform vec3 rainFogAxis;
+    uniform float rainFogPhase;uniform float rainFogAmount;uniform float rainPatchAmount;
+    uniform float rainFogWaveLength;uniform float rainFogTravel;uniform float rainFogPace;
+    float rainFieldDensity(vec3 world,float pace){
+      float along=(dot(world,rainFogAxis)*6.28318530718/rainFogWaveLength-rainFogTravel)*pace;
       vec3 p=world-rainFogShift;
-      float warp=sin((p.x+p.z)*.006+rainFogPhase*.08)*22.;
-      float a=sin((p.x+warp)*.017+p.y*.019);
-      float b=sin((p.z-warp*.7)*.023-p.y*.013+rainFogPhase*.07);
-      float c=sin((p.x*.8+p.z)*.049+p.y*.028-rainFogPhase*.11);
-      return .12+1.76*smoothstep(.18,.82,.5+.5*(.55*a+.30*b+.15*c));
+      float warp=.18*sin((p.x*rainFogAxis.z-p.z*rainFogAxis.x)*.15+p.y*.06+rainFogPhase*.4);
+      float ripple=.76*sin(along+warp)+.24*sin(along*1.13+1.7+warp*.7);
+      float broad=sin(p.x*.08+p.y*.05+p.z*.11+rainFogPhase*.4);
+      return 1.+.18*ripple+.06*broad;
     }`;
   return{density,glsl,smooth};
 })();
 function createRainFog(T){
-  const uniforms={rainFogShift:{value:new T.Vector3()},rainFogPhase:{value:0},rainFogAmount:{value:0}},installed=new WeakSet();
-  let amount=0,frame=0;
+  const uniforms={rainFogShift:{value:new T.Vector3()},rainFogAxis:{value:new T.Vector3()},rainFogPhase:{value:0},rainFogAmount:{value:0},rainPatchAmount:{value:0},rainFogWaveLength:{value:12},rainFogTravel:{value:0},rainFogPace:{value:1/1.45}},installed=new WeakSet();
+  const wave={axis:uniforms.rainFogAxis.value,wavelength:12,travel:0},frequency=1.45;
+  let amount=0,frame=0,initialized=false;
   // Recover world position from the final model-view position, including instances/deformation.
   if(!T.ShaderChunk.fog_fragment.includes('rainFieldDensity')){
     T.ShaderChunk.fog_pars_vertex+='\n#ifdef USE_FOG\nvarying vec3 vRainFogWorld;\n#endif';
     T.ShaderChunk.fog_vertex+='\n#ifdef USE_FOG\nvRainFogWorld=cameraPosition+mvPosition.xyz*mat3(viewMatrix);\n#endif';
     T.ShaderChunk.fog_pars_fragment+='\n#ifdef USE_FOG\nvarying vec3 vRainFogWorld;\n'+RainField.glsl+'\n#endif';
     T.ShaderChunk.fog_fragment=T.ShaderChunk.fog_fragment.replace('float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );',`vec3 ray=vRainFogWorld-cameraPosition;
-      float concentration=(rainFieldDensity(cameraPosition+ray*.18)+rainFieldDensity(cameraPosition+ray*.50)+rainFieldDensity(cameraPosition+ray*.82))/3.;
+      float concentration=(rainFieldDensity(cameraPosition+ray*.18,rainFogPace)+rainFieldDensity(cameraPosition+ray*.50,rainFogPace)+rainFieldDensity(cameraPosition+ray*.82,rainFogPace))/3.;
       float opticalVariation=mix(1.,concentration,rainFogAmount);
       float fogFactor=1.-exp(-fogDensity*fogDensity*vFogDepth*vFogDepth*opticalVariation);`);
   }
@@ -70,15 +74,22 @@ function createRainFog(T){
   }
   function update(dt,weather,visual,clearFog,scene){
     const step=Math.max(0,dt),shift=uniforms.rainFogShift.value;
-    shift.x+=weather.ve*visual.curtainDrift*step;shift.z-=weather.vn*visual.curtainDrift*step;shift.y-=visual.curtainFall*step;
+    const flow={x:weather.ve*visual.curtainDrift,y:-visual.curtainFall,z:-weather.vn*visual.curtainDrift},speed=Math.max(.001,Math.hypot(flow.x,flow.y,flow.z));
+    shift.x+=flow.x*step;shift.z+=flow.z*step;shift.y+=flow.y*step;
+    const blend=initialized?1-Math.exp(-step*3):1;
+    for(const axis of ['x','y','z'])wave.axis[axis]+=(flow[axis]/speed-wave.axis[axis])*blend;
+    const norm=Math.max(.001,Math.hypot(wave.axis.x,wave.axis.y,wave.axis.z));for(const axis of ['x','y','z'])wave.axis[axis]/=norm;
+    wave.wavelength+=(Math.max(.5,speed/frequency)-wave.wavelength)*blend;wave.travel+=Math.PI*2*frequency*step;initialized=true;
+    uniforms.rainFogWaveLength.value=wave.wavelength;uniforms.rainFogTravel.value=wave.travel;
     uniforms.rainFogPhase.value+=step;
     amount=RainField.smooth(6,70,weather.rain)*(.65+.35*visual.mistMix);
-    uniforms.rainFogAmount.value=clearFog?0:amount;
+    uniforms.rainFogAmount.value=clearFog?0:amount;uniforms.rainPatchAmount.value=amount;
     if(scene&&frame++%60===0)install(scene);
   }
-  const densityAt=(x,y,z)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value)-1)*amount;
-  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,samples:[densityAt(-100,20,-60),densityAt(0,20,-60),densityAt(100,20,-60)]});
-  return{install,update,densityAt,diagnostics,uniforms};
+  const densityAt=(x,y,z,pace=1)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value,wave,pace)-1)*amount;
+  const fogDensityAt=(x,y,z)=>densityAt(x,y,z,uniforms.rainFogPace.value);
+  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,frequency,fogFrequency:frequency*uniforms.rainFogPace.value,wavelength:wave.wavelength,travel:wave.travel,samples:[fogDensityAt(-100,20,-60),fogDensityAt(0,20,-60),fogDensityAt(100,20,-60)]});
+  return{install,update,densityAt,fogDensityAt,diagnostics,uniforms};
 }
 ViewAtmosphere.RainField=RainField;ViewAtmosphere.createRainFog=createRainFog;
 if(typeof module!=='undefined'&&module.exports)module.exports=ViewAtmosphere;

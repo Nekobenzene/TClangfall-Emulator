@@ -103,19 +103,24 @@
   }
   function visuals(kt,rain){
     const severe=clamp((kt-35)/145,0,1.17),optics=rainOptics(kt,rain),mistMix=optics.mistMix,curtain=smooth(15,100,rain);
-    return {debrisCount:Math.min(340,Math.round(280*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
-      rainFall:optics.fallSpeed*(2.8-2.25*mistMix),rainDensity:1+1.18*mistMix,dropDiameter:optics.diameter*(1-.76*mistMix),
-      rainTrail:.0016+.0484*Math.pow(1-mistMix,1.35),curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
+    return {debrisCount:kt<95?0:Math.min(113,Math.round(280/3*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
+      rainFall:optics.fallSpeed*(3.6-2.85*mistMix),rainDensity:1+2.4*Math.pow(mistMix,1.15),dropDiameter:optics.diameter*(1-.83*mistMix),
+      rainTrail:.003+.062*(1-mistMix),curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
       treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:clamp(.65*curtain+.65*mistMix*smooth(1,30,rain),0,1)};
   }
-  function rainExtinction(rain,mist=0,dropExtinction=0){
-    // User-specified wet-environment calibration, not a universal pure-raindrop law.
-    // 75 mm/h in calm air -> 350 m MOR; wind can alter extinction by at most 10%.
-    return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*(1+.10*mist),{rain,mist,dropExtinction});
+  function rainExtinction(rain,mist=0,dropExtinction=0,kt=0){
+    // Scenario calibration: weak winds leave rain visibility unchanged; strong
+    // winds add spray/haze. Logarithmic tails soften growth beyond 165/180 kt,
+    // matching both value and slope at each join; 170 kt / 70 mm/h -> ~100 m.
+    const windU=Math.min(kt,165),rapidGain=2.208;
+    const windSlope=.75*1.5/70*Math.sqrt(65/70)+rapidGain*2*28/(33*33);
+    const windTail=12*Math.log1p(clamp(kt-165,0,15)/12)+(12/27)*6*Math.log1p(Math.max(0,kt-180)/6);
+    const windGain=1+.75*Math.pow(Math.max(0,(windU-100)/70),1.5)+rapidGain*Math.pow(Math.max(0,(windU-137)/33),2)+windSlope*windTail;
+    return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*windGain,{rain,mist,dropExtinction,kt,windGain});
   }
   function debrisMotion(kt,kind){
-    const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?100:medium?58:28,lift=smooth(threshold,heavy?195:medium?150:110,kt);
-    return {active:kt>threshold,speed:heavy?.22+.34*lift:medium?.48+.30*lift:.78+.18*lift,height:heavy?.4+18*lift:medium?1+37*lift:3+66*lift,
+    const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?155:medium?137:95,lift=smooth(threshold,heavy?210:medium?190:160,kt);
+    return {active:kt>=threshold,speed:heavy?.22+.34*lift:medium?.48+.30*lift:.78+.18*lift,height:heavy?.4+18*lift:medium?1+37*lift:3+66*lift,
       size:heavy?1.1+1.6*lift:medium?.35+.65*lift:.10+.24*lift,tumble:heavy?.55:medium?1.4:2.8};
   }
   function surge(kt){return configured('surge.level',()=>clamp(3*Math.pow(Math.max(0,kt-18)/152,2),0,4.5),{kt});}
@@ -173,10 +178,10 @@
       const stormRain=26+3*(1-smooth(wallRadius,bandRadius,radius));
       const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.72,wallRadius,radius);
       const developedRain=stormRain+43*wallRamp;
-      // Mature eye remains dry up to the ground footprint of the inner cloud wall.
+      // Rain begins as the feathered inner cloud-wall footprint passes overhead.
       // Weak/developing eyes retain a wider, wetter inner transition.
-      const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.75*sharpEye);
-      const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.12*sharpEye),.25,3);
+      const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.735*sharpEye);
+      const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.171*sharpEye),.12,3);
       const eyeDrying=eyeClearing*(1-smooth(rainStart,rainEnd,radius));
       rain=(broadRain+(developedRain-broadRain)*eyeDevelopment)*(1-eyeDrying)*scale;
       rain*=1+.035*Math.sin(time*.9)*smooth(0,bandRadius,radius);
@@ -192,7 +197,7 @@
     const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain*.90,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
-    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction);
+    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction,sustained);
     // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
     const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
     return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
