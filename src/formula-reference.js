@@ -3,6 +3,7 @@
  'use strict';
  const data=FORMULA_REFERENCE,make=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
  const names={'eye.development':'眼与眼墙结构形成','eye.rainClearing':'眼中心降雨减弱','wind.profile':'径向持续风速分布','weather.eyeSun':'风眼日照','weather.rain':'本地雨强','weather.visibility':'能见度','surge.level':'风暴潮目标水位','surge.responseSeconds':'风暴潮涨退响应时间','eye.wallHeight':'眼墙高度','eye.cloudCoverage':'眼内低中云覆盖','eye.angularSpeed':'眼墙角速度'};
+ Object.assign(names,{'rain.mistTransition':'雨丝转为细密碎雾','rain.effectiveDiameter':'通量守恒雨滴谱尺寸'});
  const panel=document.getElementById('formulaReference');
  const header=make('header'),heading=make('h2','计算公式与完整源码');heading.id='formulaReferenceTitle';header.append(heading);
  const intro=make('p','这里附上当前构建的全部第一方模拟源码、从源码自动提取的计算表达式，以及可编辑公式的变量与内置表达式。包括风雨、风场、能见度、风暴潮、眼墙、粒子、风毁、相机和地图。第三方 Three.js 不在此重复。此页为只读的内置参考；修改与试算请切换左侧“计算公式”，具体数值可在其他参数分类调整。','formula-reference-intro');

@@ -60,13 +60,18 @@
     const cfg=options.preparedIntensity===intensity?options:structure(options,intensity);
     const {eyeRadius,stormRadius,influenceRadius,rmw,bandRadius,hasEye,hasStorm,eyeDevelopment,windWallRadius,heading,motionSpeed}=cfg;
     const radius=Math.hypot(east,north),q=radius/rmw;
+    // Willoughby et al. (2006) inspired family, adapted to the editable surface geometry.
+    // A power-law core joins two exponential tails with a smooth, exactly preserved peak.
+    const coreExponent=.79+.65*smooth(67,185,intensity),fastFraction=.10+.50*smooth(83,185,intensity);
+    const fastLength=clamp((windWallRadius-rmw)*2,8,80),shoulder=clamp((windWallRadius-rmw)*.10,.5,4);
+    const background=.015,tailTarget=.045;
+    const slowLength=Math.max(fastLength,(influenceRadius-rmw)/Math.log((1-background)*(1-fastFraction)/(tailTarget-background)));
     let profile;
-    const wallLevel=.24+.18*eyeDevelopment;
-    if(radius<=rmw)profile=(1-.92*eyeDevelopment)*smooth(0,rmw,radius)+.92*eyeDevelopment*smooth(eyeRadius*.45,rmw,radius);
-    else if(hasStorm&&radius<=windWallRadius)profile=1-(1-wallLevel)*smooth(rmw,windWallRadius,radius);
-    else if(hasStorm&&radius<=stormRadius)profile=wallLevel-(wallLevel-.24)*smooth(windWallRadius,stormRadius,radius);
-    else if(radius<=influenceRadius)profile=hasStorm?.24-.195*smooth(stormRadius,influenceRadius,radius):1-.955*smooth(rmw,influenceRadius,radius);
-    else profile=.015+.030*Math.exp(-(radius-influenceRadius)/260);
+    if(radius<=rmw){const power=Math.pow(q,coreExponent);profile=power+(1-power)*smooth(.78,1,q);}
+    else{
+      const s=radius-rmw,d=s-shoulder*(1-Math.exp(-s/shoulder));
+      profile=background+(1-background)*(fastFraction*Math.exp(-d/fastLength)+(1-fastFraction)*Math.exp(-d/slowLength));
+    }
     // Smooth low-order asymmetry only. The peak is preserved and strong cores become rounder.
     const a=Math.atan2(north,east),asym=.04*(1-.94*smooth(67,185,intensity));
     profile+=asym*profile*(1-profile)*(.7*Math.sin(a+.4+time*.002)+.3*Math.sin(2*a-.8));
@@ -79,10 +84,29 @@
       semicircle:motionSpeed<.05||radius<.1?'none':right>=0?'danger':'safe',
       region:radius>=influenceRadius?'clear':hasEye&&eyeDevelopment>0&&radius<eyeRadius?'eye':hasEye&&eyeDevelopment>0&&radius<=cfg.wallRadius?'wall':hasStorm&&radius<=stormRadius?'storm':!hasStorm&&radius<=bandRadius?'core':'outer'};
   }
+  function dropFall(diameter){
+    // Atlas et al. (1973), D in mm. Smooth small-drop approximation below 0.6 mm.
+    return diameter>=.6?9.65-10.3*Math.exp(-.6*diameter):(9.65-10.3*Math.exp(-.36))*Math.pow(Math.max(0,diameter)/.6,1.15);
+  }
+  function rainOptics(kt,rain){
+    const rate=Math.max(0,rain),mistMix=configured('rain.mistTransition',()=>smooth(65,110,kt),{kt,rain});
+    // Effective fine-rain spectrum: the wind/diameter relation is an artistic control,
+    // NOT an observed universal atomization law. Normalize number to conserve rain flux.
+    const diameter=configured('rain.effectiveDiameter',()=>(.85+.40*Math.log1p(Math.max(0,rain)/10))*(1-.82*mistMix),{kt,rain:rate,mistMix});
+    let flux=0,area=0,volume=0,number=0;
+    for(let i=0;i<16;i++){
+      const x=.125+i*.25,d=Math.max(.01,diameter*x),m=d/1000,weight=x*x*Math.exp(-3*x),v=dropFall(d);
+      flux+=weight*Math.PI/6*m*m*m*v;area+=weight*Math.PI/2*m*m;volume+=weight*Math.PI/6*m*m*m;number+=weight;
+    }
+    const concentration=rate/3600000/Math.max(1e-14,flux),extinction=concentration*area;
+    return{mistMix,diameter,extinction,numberDensity:concentration*number,liquidWater:concentration*volume*1e6,fallSpeed:flux/Math.max(1e-14,volume)};
+  }
   function visuals(kt,rain){
-    const severe=clamp((kt-35)/145,0,1.17),mistMix=smooth(90,130,kt);
+    const severe=clamp((kt-35)/145,0,1.17),optics=rainOptics(kt,rain),mistMix=optics.mistMix,curtain=smooth(15,100,rain);
     return {debrisCount:Math.min(340,Math.round(280*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
-      rainFall:32*(1-mistMix)+2.2*mistMix,treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:mistMix*smooth(1,28,rain)};
+      rainFall:optics.fallSpeed,rainDensity:1+1.18*mistMix,dropDiameter:optics.diameter,
+      rainTrail:.05*(1-mistMix)+.00065*mistMix,curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
+      treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:clamp(.65*curtain+.65*mistMix*smooth(1,30,rain),0,1)};
   }
   function debrisMotion(kt,kind){
     const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?100:medium?58:28,lift=smooth(threshold,heavy?195:medium?150:110,kt);
@@ -144,7 +168,11 @@
       const stormRain=26+3*(1-smooth(wallRadius,bandRadius,radius));
       const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.72,wallRadius,radius);
       const developedRain=stormRain+43*wallRamp;
-      const eyeDrying=eyeClearing*(1-smooth(eyeRadius*.25,eyeRadius,radius));
+      // Mature eye remains dry up to the ground footprint of the inner cloud wall.
+      // Weak/developing eyes retain a wider, wetter inner transition.
+      const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.75*sharpEye);
+      const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.12*sharpEye),.25,3);
+      const eyeDrying=eyeClearing*(1-smooth(rainStart,rainEnd,radius));
       rain=(broadRain+(developedRain-broadRain)*eyeDevelopment)*(1-eyeDrying)*scale;
       rain*=1+.035*Math.sin(time*.9)*smooth(0,bandRadius,radius);
     }
@@ -159,11 +187,12 @@
     const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
-    const ms=Math.hypot(ve,vn),mist=visuals(Math.max(sustained,gust*.85),rain).mistMix;
-    const visibility=configured('weather.visibility',()=>clamp(11000/(1+rain*.12+3*Math.pow(rain/35,2.4)+Math.pow(ms/14,2)+mist*22*Math.pow(gust/130,2)),55,11000),{rain,ms,mist,gust,intensity,sustained,radius});
+    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=optics.extinction;
+    // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
+    const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
     return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
-  const api={sample,meanWind,structure,visuals,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
+  const api={sample,meanWind,structure,visuals,rainOptics,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.StormModel=api;
 })(typeof window!=='undefined'?window:globalThis);

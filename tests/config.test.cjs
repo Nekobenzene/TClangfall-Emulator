@@ -11,4 +11,5 @@ const bad=C.normalize({version:1,values:{[alias]:'wrong'},texts:{unknown:'x'},fo
 C.install(catalog,{version:1,formulas:{'weather.visibility':'1 / 0'}});assert.equal(C.formula('weather.visibility',()=>321,{}),321,'nonfinite results fall back per invocation');
 assert.throws(()=>C.normalize({version:99},catalog));assert.throws(()=>C.parseFile('alert(1)'));assert.equal(C.parseFile('globalThis.TYPHOON_CONFIG = {"version":1};').version,1);assert.equal(C.parseFile('{"version":1}').version,1);
 assert.equal(C.expression('rain > 1 ? Math.sqrt(rain) + PI : 0',['rain'])({rain:4}),2+Math.PI);
+for(const formula of catalog.formulas)assert.doesNotThrow(()=>C.expression(formula.expression,formula.args),formula.key+' default can be edited and evaluated');
 console.log('PASS: complete constant/text registry, unique keys, defaults, aliases, expression evaluation, invalid overrides, unsafe syntax rejection and nonfinite fallback.');

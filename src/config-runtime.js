@@ -4,7 +4,7 @@ const SimulatorConfig=(()=>{
  let catalog=null,config={version:1,values:{},texts:{},formulas:{}},compiled=new Map(),status={source:'内置',errors:[],unknown:[]};
  const own=(o,k)=>o&&Object.prototype.hasOwnProperty.call(o,k),safeKey=k=>!['__proto__','constructor','prototype'].includes(k);
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);};
- const functions=Object.fromEntries(['abs','min','max','pow','sqrt','cbrt','exp','log','log10','sin','cos','tan','asin','acos','atan','atan2','hypot','floor','ceil','round','sign','trunc'].map(k=>[k,Math[k]]));Object.assign(functions,{clamp,smooth});
+ const functions=Object.fromEntries(['abs','min','max','pow','sqrt','cbrt','exp','log','log1p','log10','sin','cos','tan','asin','acos','atan','atan2','hypot','floor','ceil','round','sign','trunc'].map(k=>[k,Math[k]]));Object.assign(functions,{clamp,smooth});
  function expression(source,args){
   if(typeof source!=='string'||source.length>12000)throw Error('公式长度或类型无效');
   const ast=acorn.parseExpressionAt(source,0,{ecmaVersion:'latest'});if(source.slice(ast.end).trim())throw Error('只允许单个表达式');let count=0;

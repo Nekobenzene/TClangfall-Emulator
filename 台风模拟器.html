@@ -194,7 +194,7 @@
 <p>输入是台风静止时的最大 1 分钟持续风，范围 20–200 kt。低于 67 kt 不设风眼和眼墙，但中心仍减风；低于 34 kt 不设暴风圈。67–110 kt 眼墙增强、风眼减风从零连续发展，地图边界同步淡入。四个半径均可自定义，无效结构的设置暂时保留。暴风圈是可调结构边界，并非固定风速等值线。风眼至眼墙内侧宽缓过渡，眼墙外侧风速梯度陡峭，暴风圈内部向内缓慢增强。成熟台风暴风圈内雨量大致均匀、向内略增，进入眼墙时陡增并维持至眼区边缘；无眼系统向内增雨梯度更大。独立雨强主要调制暴风圈内降雨，轻微影响外围。所有参数都有滑动条；移动方向支持转盘。地图中心读数相对所选楼房，精调位置数值以海岸公寓为固定原点。</p>
 <p>北半球环流逆时针并向内流入 15°。移动方向为去向：0° 向北、90° 向东。将移速的 65% 加入本地环流向量，形成前进方向右侧较强的危险半圆、左侧较弱的安全半圆。输入强度为静止参考值，移动叠加后本地风速可能超过它；“安全”仅是两侧的相对名称。</p>
 <p>移速始终参与风场，点击“开始推进中心”才会自动移动中心。时间倍率 1–1000 倍同时改变模拟时钟、阵风与阵雨切换速度、风暴潮涨退及风毁累计受风时间，中心固定时也生效。全局暂停冻结天气、增水与中心移动。外围向内持续风和阵风阵雨出现频率逐渐增加，相对波动幅度逐渐减小。阵雨与阵风大体重合但不完全同步，极少数外围暴雨可超过眼墙，雨歇时偶有多云或晴空。外围边界内外概率连续：阵风保留弱背景事件，阵雨概率平滑降至零，圈外下沉晴空。“本地持续风”是参考平均值，“模拟阵风”反映瞬时气流。</p>
-<p>风眼中心约 100 kt 雨停时，按设定的风眼半径与眼墙外界半径生成云墙；初期受到眼内厚云、平淡光照和散射遮挡，随后云隙与能见度提升才逐渐显露。内壁仅在风眼内显示，眼墙和暴风圈中由连续低云层覆盖天空；外围保留原有天空。坐标采用真实公里尺度；云底偏暗，云顶受光、向外倾斜，形成“体育场”状开口。强度越高云体越高、环形越完整，边缘仍有不规则起伏；从中心、边缘及高空观看会有不同远近和遮挡。云墙使用连续螺旋纹理，按最大风速 / 最大风速半径的角速度随模拟时钟逆时针转动，暂停时停止；眼内低层与中层云随强度增强逐渐消散，190 kt 起全部清空。强风雨下天空与楼房、山体雾色使用相同输出颜色空间，避免远景接缝。云墙起伏为视觉近似，非实测云高。参考 <a href="https://www.aoml.noaa.gov/eye-of-dorian-during-intensification/" target="_blank" rel="noopener">NOAA 飓风猎人的多里安风眼实拍</a>，未打包照片。自由飞行时，雨丝和运动雾带按空气运动减去相机运动计算相对速度，包含水平与升降；快速飞行会改变雨线的方向和长度，暂停天气后仍保留穿越静止雨幕的视差。</p><p>90–130 kt 时雨丝逐渐碎裂成风携碎雾，约 130 kt 近乎横行；强风雨下天空纹理淡去并融入雨雾。轻碎屑飞得更高、更贴近风速，大板片需要更强风才起飞，速度较慢且更低。弱系统中心保留雨；67–100 kt 眼内雨量连续减少，约 100 kt 眼中心趋于无雨，150 kt 左右开始见阳光，至 180 kt 逐渐晴朗，190 kt 起眼内低中云清空。简化增水随本地持续风增强，170 kt 约 3 米（约一层楼高度，实际淹深扣除地坪海拔），200 kt 约 4.3 米，上限 4.5 米；上涨时间常数为 40–65 模拟分钟；高水位在眼内继续保留，170 kt 台风需中心离开至少 500 km 后才开始缓慢回落，随后退水约需 6 模拟小时。时间倍率同时影响涨退。主界面与全屏均显示相对常态的当前水面上升米数、涨退趋势与速率。地形由步道、道路、住宅前场及更高台地组成，海拔逐级为 0.25、0.55、0.90、1.70、2.90、4.65 米。水面只升降，超过各级固定地形后自然淹入；台阶之间有短坡与楼梯，建筑落在对应地台上。白色色带与白斑模拟浪带和雨水击打，不计算波浪形变、破碎和真实水动力，增水数值仅用于视觉演示。</p>
+<p>风眼中心约 100 kt 雨停时，按设定的风眼半径与眼墙外界半径生成云墙；初期受到眼内厚云、平淡光照和散射遮挡，随后云隙与能见度提升才逐渐显露。内壁仅在风眼内显示，眼墙和暴风圈中由连续低云层覆盖天空；外围保留原有天空。坐标采用真实公里尺度；云底偏暗，云顶受光、向外倾斜，形成“体育场”状开口。强度越高云体越高、环形越完整，边缘仍有不规则起伏；从中心、边缘及高空观看会有不同远近和遮挡。云墙使用连续螺旋纹理，按最大风速 / 最大风速半径的角速度随模拟时钟逆时针转动，暂停时停止；眼内低层与中层云随强度增强逐渐消散，190 kt 起全部清空。强风雨下天空与楼房、山体雾色使用相同输出颜色空间，避免远景接缝。云墙起伏为视觉近似，非实测云高。参考 <a href="https://www.aoml.noaa.gov/eye-of-dorian-during-intensification/" target="_blank" rel="noopener">NOAA 飓风猎人的多里安风眼实拍</a>，未打包照片。自由飞行时，雨丝和运动雾带按空气运动减去相机运动计算相对速度，包含水平与升降；快速飞行会改变雨线的方向和长度，暂停天气后仍保留穿越静止雨幕的视差。</p><p>65–110 kt 时，同样雨量的雨滴逐渐变小、变密，到 110 kt 呈细雨雾状；大雨即使在较弱风中也有缓慢漂移、带下落分量的白色雨幕。此风速细化关系为视觉设定。能见度改按雨滴谱消光和 MOR 5% 定义计算，无雨时不再按风速压低；150 kt 起眼内保持干燥，越过设定的眼墙云底内缘才迅速增雨。持续风采用内侧幂律、外侧双指数的平滑径向曲线；强风雨下天空纹理淡去并融入雨雾。轻碎屑飞得更高、更贴近风速，大板片需要更强风才起飞，速度较慢且更低。弱系统中心保留雨；67–100 kt 眼内雨量连续减少，约 100 kt 眼中心趋于无雨，150 kt 左右开始见阳光，至 180 kt 逐渐晴朗，190 kt 起眼内低中云清空。简化增水随本地持续风增强，170 kt 约 3 米（约一层楼高度，实际淹深扣除地坪海拔），200 kt 约 4.3 米，上限 4.5 米；上涨时间常数为 40–65 模拟分钟；高水位在眼内继续保留，170 kt 台风需中心离开至少 500 km 后才开始缓慢回落，随后退水约需 6 模拟小时。时间倍率同时影响涨退。主界面与全屏均显示相对常态的当前水面上升米数、涨退趋势与速率。地形由步道、道路、住宅前场及更高台地组成，海拔逐级为 0.25、0.55、0.90、1.70、2.90、4.65 米。水面只升降，超过各级固定地形后自然淹入；台阶之间有短坡与楼梯，建筑落在对应地台上。白色色带与白斑模拟浪带和雨水击打，不计算波浪形变、破碎和真实水动力，增水数值仅用于视觉演示。</p>
 <p>街景包含随风摆动的旗布、电线、草木及桶盖。环境杂物略减，吹海风时明显更少。树木、路灯和窗户的风毁门槛分别为 145、155、160 kt；超过门槛后按受风时间累计，风越强，能坚持的时间越短，各物体耐受力有差异。垃圾桶、路牌、护栏和旗布也会翻倒、飞走或变形。点击“恢复”修复景物并清除累计损伤，保留台风和水位；“重置”同时复位风暴与增水。全屏的“观测显示”可独立隐藏风速风向、雨量、水面和小地图；风速可切换持续风或阵风，地图可切换风速着色。</p><p class="credits">渲染：<a href="https://threejs.org/" target="_blank" rel="noopener">Three.js r160</a>（MIT）。参考官方粒子示例，调研 <a href="https://kenney.nl/assets/city-kit-suburban" target="_blank" rel="noopener">Kenney City Kit</a>（未打包使用）。建筑、天气与地图均由程序生成；完整许可证附于 HTML。</p></form></dialog>
 
   <script>console.warn('Scripts "build/three.js" and "build/three.min.js" are deprecated with r150+, and will be removed with r160. Please use ES Modules or alternatives: https://threejs.org/docs/index.html#manual/en/introduction/Installation'),
@@ -267,13 +267,18 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     const cfg=options.preparedIntensity===intensity?options:structure(options,intensity);
     const {eyeRadius,stormRadius,influenceRadius,rmw,bandRadius,hasEye,hasStorm,eyeDevelopment,windWallRadius,heading,motionSpeed}=cfg;
     const radius=Math.hypot(east,north),q=radius/rmw;
+    // Willoughby et al. (2006) inspired family, adapted to the editable surface geometry.
+    // A power-law core joins two exponential tails with a smooth, exactly preserved peak.
+    const coreExponent=.79+.65*smooth(67,185,intensity),fastFraction=.10+.50*smooth(83,185,intensity);
+    const fastLength=clamp((windWallRadius-rmw)*2,8,80),shoulder=clamp((windWallRadius-rmw)*.10,.5,4);
+    const background=.015,tailTarget=.045;
+    const slowLength=Math.max(fastLength,(influenceRadius-rmw)/Math.log((1-background)*(1-fastFraction)/(tailTarget-background)));
     let profile;
-    const wallLevel=.24+.18*eyeDevelopment;
-    if(radius<=rmw)profile=(1-.92*eyeDevelopment)*smooth(0,rmw,radius)+.92*eyeDevelopment*smooth(eyeRadius*.45,rmw,radius);
-    else if(hasStorm&&radius<=windWallRadius)profile=1-(1-wallLevel)*smooth(rmw,windWallRadius,radius);
-    else if(hasStorm&&radius<=stormRadius)profile=wallLevel-(wallLevel-.24)*smooth(windWallRadius,stormRadius,radius);
-    else if(radius<=influenceRadius)profile=hasStorm?.24-.195*smooth(stormRadius,influenceRadius,radius):1-.955*smooth(rmw,influenceRadius,radius);
-    else profile=.015+.030*Math.exp(-(radius-influenceRadius)/260);
+    if(radius<=rmw){const power=Math.pow(q,coreExponent);profile=power+(1-power)*smooth(.78,1,q);}
+    else{
+      const s=radius-rmw,d=s-shoulder*(1-Math.exp(-s/shoulder));
+      profile=background+(1-background)*(fastFraction*Math.exp(-d/fastLength)+(1-fastFraction)*Math.exp(-d/slowLength));
+    }
     // Smooth low-order asymmetry only. The peak is preserved and strong cores become rounder.
     const a=Math.atan2(north,east),asym=.04*(1-.94*smooth(67,185,intensity));
     profile+=asym*profile*(1-profile)*(.7*Math.sin(a+.4+time*.002)+.3*Math.sin(2*a-.8));
@@ -286,10 +291,29 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       semicircle:motionSpeed<.05||radius<.1?'none':right>=0?'danger':'safe',
       region:radius>=influenceRadius?'clear':hasEye&&eyeDevelopment>0&&radius<eyeRadius?'eye':hasEye&&eyeDevelopment>0&&radius<=cfg.wallRadius?'wall':hasStorm&&radius<=stormRadius?'storm':!hasStorm&&radius<=bandRadius?'core':'outer'};
   }
+  function dropFall(diameter){
+    // Atlas et al. (1973), D in mm. Smooth small-drop approximation below 0.6 mm.
+    return diameter>=.6?9.65-10.3*Math.exp(-.6*diameter):(9.65-10.3*Math.exp(-.36))*Math.pow(Math.max(0,diameter)/.6,1.15);
+  }
+  function rainOptics(kt,rain){
+    const rate=Math.max(0,rain),mistMix=configured('rain.mistTransition',()=>smooth(65,110,kt),{kt,rain});
+    // Effective fine-rain spectrum: the wind/diameter relation is an artistic control,
+    // NOT an observed universal atomization law. Normalize number to conserve rain flux.
+    const diameter=configured('rain.effectiveDiameter',()=>(.85+.40*Math.log1p(Math.max(0,rain)/10))*(1-.82*mistMix),{kt,rain:rate,mistMix});
+    let flux=0,area=0,volume=0,number=0;
+    for(let i=0;i<16;i++){
+      const x=.125+i*.25,d=Math.max(.01,diameter*x),m=d/1000,weight=x*x*Math.exp(-3*x),v=dropFall(d);
+      flux+=weight*Math.PI/6*m*m*m*v;area+=weight*Math.PI/2*m*m;volume+=weight*Math.PI/6*m*m*m;number+=weight;
+    }
+    const concentration=rate/3600000/Math.max(1e-14,flux),extinction=concentration*area;
+    return{mistMix,diameter,extinction,numberDensity:concentration*number,liquidWater:concentration*volume*1e6,fallSpeed:flux/Math.max(1e-14,volume)};
+  }
   function visuals(kt,rain){
-    const severe=clamp((kt-35)/145,0,1.17),mistMix=smooth(90,130,kt);
+    const severe=clamp((kt-35)/145,0,1.17),optics=rainOptics(kt,rain),mistMix=optics.mistMix,curtain=smooth(15,100,rain);
     return {debrisCount:Math.min(340,Math.round(280*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
-      rainFall:32*(1-mistMix)+2.2*mistMix,treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:mistMix*smooth(1,28,rain)};
+      rainFall:optics.fallSpeed,rainDensity:1+1.18*mistMix,dropDiameter:optics.diameter,
+      rainTrail:.05*(1-mistMix)+.00065*mistMix,curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
+      treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:clamp(.65*curtain+.65*mistMix*smooth(1,30,rain),0,1)};
   }
   function debrisMotion(kt,kind){
     const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?100:medium?58:28,lift=smooth(threshold,heavy?195:medium?150:110,kt);
@@ -351,7 +375,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       const stormRain=26+3*(1-smooth(wallRadius,bandRadius,radius));
       const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.72,wallRadius,radius);
       const developedRain=stormRain+43*wallRamp;
-      const eyeDrying=eyeClearing*(1-smooth(eyeRadius*.25,eyeRadius,radius));
+      // Mature eye remains dry up to the ground footprint of the inner cloud wall.
+      // Weak/developing eyes retain a wider, wetter inner transition.
+      const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.75*sharpEye);
+      const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.12*sharpEye),.25,3);
+      const eyeDrying=eyeClearing*(1-smooth(rainStart,rainEnd,radius));
       rain=(broadRain+(developedRain-broadRain)*eyeDevelopment)*(1-eyeDrying)*scale;
       rain*=1+.035*Math.sin(time*.9)*smooth(0,bandRadius,radius);
     }
@@ -366,11 +394,12 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
-    const ms=Math.hypot(ve,vn),mist=visuals(Math.max(sustained,gust*.85),rain).mistMix;
-    const visibility=configured('weather.visibility',()=>clamp(11000/(1+rain*.12+3*Math.pow(rain/35,2.4)+Math.pow(ms/14,2)+mist*22*Math.pow(gust/130,2)),55,11000),{rain,ms,mist,gust,intensity,sustained,radius});
+    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=optics.extinction;
+    // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
+    const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
     return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
-  const api={sample,meanWind,structure,visuals,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
+  const api={sample,meanWind,structure,visuals,rainOptics,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.StormModel=api;
 })(typeof window!=='undefined'?window:globalThis);
@@ -1453,7 +1482,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
       items.forEach((v,i)=>{obj.position.set(v[0],v[1],v[2]);obj.scale.set(v[3],v[4],v[5]);obj.rotation.y=v[6];obj.updateMatrix();mesh.setMatrixAt(i,obj.matrix);});mesh.receiveShadow=true;mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);
     }
     // Weather particles use world-space velocity; moving the storm reverses the flow correctly.
-    const rainCount=22000;rainPositions=new Float32Array(rainCount*6);const initial=new Float32Array(rainCount*3);
+    const rainCount=48000;rainPositions=new Float32Array(rainCount*6);const initial=new Float32Array(rainCount*3);
     for(let i=0;i<rainCount;i++){const near=i%3!==0;initial[i*3]=randomRange(near?-62:-145,near?62:145);initial[i*3+1]=randomRange(near?-8:-15,near?67:115);initial[i*3+2]=randomRange(near?-15:-125,near?120:105);}
     rainGeo=new T.BufferGeometry();rainGeo.setAttribute('position',new T.BufferAttribute(rainPositions,3).setUsage(T.DynamicDrawUsage));
     rainMat=new T.LineBasicMaterial({color:'#c8dddf',transparent:true,opacity:.3,depthWrite:false});rain=new T.LineSegments(rainGeo,rainMat);rain.frustumCulled=false;rain.userData.points=initial;scene.add(rain);
@@ -1495,7 +1524,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
   }
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
-    const visual=M.visuals(Math.max(kt,weather.gust*.85),weather.rain),vx=weather.ve*.78,vz=-weather.vn*.78,fall=visual.rainFall;
+    const visual=M.visuals(Math.max(kt,weather.gust*.85),weather.rain),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
     const anchor=camera.position,previous=particleCamera||anchor;
     let cameraDelta={x:anchor.x-previous.x,y:anchor.y-previous.y,z:anchor.z-previous.z};
     // Rebase instant viewpoint changes; continuous flight retains world-space particles.
@@ -1503,14 +1532,14 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     particleCamera={x:anchor.x,y:anchor.y,z:anchor.z};
     const relativeRain=ObserverCamera.particleMotion({x:vx,y:-fall,z:vz},cameraDelta,dt,viewDt),wrap=ObserverCamera.wrap;
     rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);mist.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);
-    const count=Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*22000*(1-visual.mistMix*.82));
-    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022,.21,.68)*(1-visual.mistMix*.86);
+    const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*22000*visual.rainDensity));
+    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022,.21,.68);
     const p=rain.userData.points;
     for(let i=0;i<count;i++){
       const k=i*3,j=i*6;p[k]+=relativeRain.x;p[k+1]+=relativeRain.y;p[k+2]+=relativeRain.z;
       const near=i%3!==0,xmax=near?62:145,zmin=near?-15:-125,zmax=near?120:105,ymin=near?-8:-15;
       p[k]=wrap(p[k],-xmax,xmax);p[k+2]=wrap(p[k+2],zmin,zmax);p[k+1]=wrap(p[k+1],ymin,ymin+(near?75:130));
-      const trail=(.05+ms*.0003)*(1-visual.mistMix*.82)*(1+.16*Math.sin(i*7.9))*(1+.8*M.smooth(55,180,weather.rain));
+      const trail=visual.rainTrail*(1+.16*Math.sin(i*7.9))*(1+.25*M.smooth(55,180,weather.rain));
       rainPositions[j]=p[k];rainPositions[j+1]=p[k+1];rainPositions[j+2]=p[k+2];rainPositions[j+3]=p[k]-relativeRain.vx*trail;rainPositions[j+4]=p[k+1]-relativeRain.vy*trail;rainPositions[j+5]=p[k+2]-relativeRain.vz*trail;
     }rainGeo.attributes.position.needsUpdate=true;
     const debrisKt=Math.max(kt,weather.gust*.9),limit=Math.round(M.visuals(debrisKt,weather.rain).debrisCount*M.debrisSupply(weather.ve,weather.vn)),obj=debris.userData.object;let active=0;
@@ -1536,16 +1565,18 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
     });
     flag.rotation.y=Math.atan2(weather.vn,weather.ve);const cloth=flag.userData.cloth,attr=cloth.geometry.attributes.position;
     for(let i=0;i<attr.count;i++){const x=attr.getX(i)+1.3;attr.setZ(i,Math.sin(t*7-x*3)*x*.055*clamp(ms/20,0,2));}attr.needsUpdate=true;flag.rotation.z=-Math.max(0,1-ms/15)*.75;
-    // Wind-carried, broad translucent spray fronts, with denser successive gust waves.
+    // Advected concentration curtains also occur in heavy rain with modest wind.
+    // Their slower pattern drift and sedimentation are distinct from single-drop motion.
     mist.count=visual.mistOpacity>.005?150:0;
-    mist.material.opacity=visual.mistOpacity*(.16+.12*(.5+.5*Math.sin(t*2.3)));
+    mist.material.opacity=visual.mistOpacity*.24;
     const mo=mist.userData.object,cross=windE*Math.cos(state.yaw*RAD)-windZ*Math.sin(state.yaw*RAD);
-    const relativeMist=ObserverCamera.particleMotion({x:vx*.88,y:0,z:vz*.88},cameraDelta,dt,viewDt);
-    const roll=Math.atan2(-fall/Math.max(1,ms),cross||.001);
+    const relativeMist=ObserverCamera.particleMotion({x:vx*visual.curtainDrift,y:-visual.curtainFall,z:vz*visual.curtainDrift},cameraDelta,dt,viewDt);
+    const roll=Math.atan2(-visual.curtainFall,ms*visual.curtainDrift*cross||.001);
     for(let i=0;i<mist.count;i++){
       const p=mistItems[i];p.x=wrap(p.x+relativeMist.x,-105,105);p.z=wrap(p.z+relativeMist.z,-115,95);p.y=wrap(p.y+Math.sin(t+p.phase)*dt*.6+relativeMist.y,1,57);
-      const wave=.65+.35*Math.sin(((p.x+camera.position.x)*windE+(p.z+camera.position.z-55)*windZ)*.13-t*2.2+p.phase*.25);
-      mo.position.set(p.x,p.y,p.z);mo.quaternion.copy(camera.quaternion);mo.rotateZ(roll);mo.scale.set(p.size*(1+visual.mistMix*1.4)*wave,(1.2+wave*3)*visual.mistMix,1);mo.updateMatrix();mist.setMatrixAt(i,mo.matrix);
+      const along=(p.x+camera.position.x)*windE+(p.z+camera.position.z-55)*windZ;
+      const wave=.48+.52*(.5+.5*Math.sin(along*.055-t*ms*visual.curtainDrift*.055+p.phase*.18));
+      mo.position.set(p.x,p.y,p.z);mo.quaternion.copy(camera.quaternion);mo.rotateZ(roll);mo.scale.set(p.size*(1+visual.mistMix*1.4)*wave,(1.2+wave*3)*(.45+.55*visual.mistMix),1);mo.updateMatrix();mist.setMatrixAt(i,mo.matrix);
     }mist.instanceMatrix.needsUpdate=true;
     const atmosphere=ViewAtmosphere.sample(weather,state.clearFog);
     scene.fog.density=atmosphere.fogDensity;
@@ -1739,6 +1770,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;
   // Read-only inspection hook for functional verification, no external services.
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
+  window.TyphoonSimulator.rainDiagnostics=()=>({count:rainGeo?.drawRange.count/2,mistCount:mist?.count,mistOpacity:mist?.material.opacity,trailLength:rainPositions?Math.hypot(rainPositions[0]-rainPositions[3],rainPositions[1]-rainPositions[4],rainPositions[2]-rainPositions[5]):0});
   window.TyphoonSimulator.eyeEnvironment=(intensity=state.intensity,distance=0)=>EyeWall.environment(intensity,state.eyeRadius,state.stormRadius,distance);
   window.TyphoonSimulator.eyeMotion=()=>({wallPhase:eyeWall?.group.rotation.y,cloudRotation:eyeClouds?.uniforms.eyeRotation.value.toArray(),config:typeof SimulatorConfig==='undefined'?{source:'内置'}:SimulatorConfig.diagnostics()});
   // Keep the original caption defaults available while reducing visible duplicate text.

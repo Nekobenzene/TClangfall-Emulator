@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..'),server=http.createServer((req,res)=>{const file=req.url.split('?')[0]==='/simulator.config.js'?'simulator.config.js':'台风模拟器.html';res.setHeader('content-type',file.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,file)));});
 const sizes=[[390,844],[844,390],[667,375],[568,320],[320,568]];
+fs.mkdirSync(path.join(root,'tmp'),{recursive:true});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL||'msedge'});const results=[];
  try{
@@ -39,7 +40,7 @@ const sizes=[[390,844],[844,390],[667,375],[568,320],[320,568]];
   await page.locator('#sceneControlsToggle').click();await page.locator('#mobileDisplaySettings').click();assert(await page.locator('.hud-settings').isVisible());
   await page.locator('#view').click({position:{x:width*.85,y:height*.35}});assert(!(await page.locator('.hud-settings').isVisible()));
   if(width===390){await page.setViewportSize({width:844,height:390});await page.waitForTimeout(80);assert(await page.locator('#flightStick').isVisible());assert((await page.evaluate(()=>window.TyphoonSimulator.getState())).freeCamera);await page.setViewportSize({width,height});}
-  if(width===844||width===390)await page.screenshot({path:path.join(root,width===844?'移动端-横屏.png':'移动端-竖屏.png')});
+  if(width===844||width===390)await page.screenshot({path:path.join(root,'tmp',width===844?'移动端-横屏.png':'移动端-竖屏.png')});
   assert.deepEqual(errors,[],`${width}: console errors`);results.push({size:`${width}x${height}`,uiCoverage:Math.round(layout.coverage*100)+'%',centralOverlap:layout.centralOverlap});await context.close();
  }
  const desktop=await browser.newContext({viewport:{width:1280,height:800}}),dp=await desktop.newPage();await dp.goto('http://127.0.0.1:'+server.address().port);await dp.waitForFunction(()=>window.TyphoonSimulator?.diagnostics().sceneReady);assert(await dp.locator('#freeCameraButton').isVisible());assert(!(await dp.locator('#sceneControlsToggle').isVisible()));assert(await dp.locator('.view-buttons #homeView').isVisible());assert(!(await dp.locator('#flightStick').isVisible()));await desktop.close();
