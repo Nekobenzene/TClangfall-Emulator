@@ -6,7 +6,7 @@ const EyeWall=(()=>{
   function shape(intensity,eyeRadius,wallRadius){
     const mature=smooth(145,185,intensity),inner=eyeRadius*1000,outer=wallRadius*1000;
     const height=configured('eye.wallHeight',()=>11500+5500*mature,{intensity,eyeRadius,wallRadius,mature});
-    return{inner,outer,height,base:220,tilt:Math.min((outer-inner)*.52,height*(.30+.25*mature)),
+    return{inner,outer,height,base:280,tilt:Math.min((outer-inner)*.52,height*(.30+.25*mature)),
       ragged:.028-.018*mature,formation:smooth(95,105,intensity),mature};
   }
   function section(s,angle,q){
@@ -35,26 +35,43 @@ const EyeWall=(()=>{
     return{inEye,wallVisibility:inside,deck,lowClouds:eyeClouds,midClouds:Math.pow(eyeClouds,1.25)};
   }
   const angularSpeed=(intensity,rmw)=>configured('eye.angularSpeed',()=>intensity*(1852/3600)/Math.max(1000,rmw*1000),{intensity,rmw});
-  return{shape,section,intersects,smooth,environment,angularSpeed};
+  function ceiling(state,weather,distance){
+    const env=environment(state.intensity,state.eyeRadius,state.stormRadius,distance);
+    const outside=state.intensity<34?1:smooth(state.stormRadius*.95,state.stormRadius*1.05,distance);
+    const wall=state.intensity<67?0:1-smooth(state.wallRadius,state.wallRadius+15,distance);
+    const base=(400-120*wall)*(1-outside)+650*outside;
+    const showers=smooth(.15,3,weather.rain??0)*(1-(weather.sunshine??0));
+    return{base,coverage:env.inEye?0:Math.max(env.deck,showers*.98)};
+  }
+  // Rain-only extinction preserves far dry-eye cloud detail; the 11 km background
+  // component is removed before applying a weak, clear-air distance haze.
+  function cloudTransmission(visibility,distance,concentration=1){
+    const beta=Math.max(0,Math.log(20)/Math.max(55,visibility)-Math.log(20)/11000);
+    return Math.exp(-Math.max(0,distance)*(beta*concentration+1/80000));
+  }
+  return{shape,section,intersects,smooth,environment,angularSpeed,ceiling,cloudTransmission};
 })();
 
 function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
   const group=new T.Group();group.name='按实际半径渲染的眼墙';group.visible=false;scene.add(group);
-  const uniforms={...eyeUniforms,opacity:{value:0},clarity:{value:0},cloudHeight:{value:16000},visibility:{value:11000},
-    haze:{value:new T.Color('#b9c7ca')},sunDir:{value:new T.Vector3(1100,640,-950).normalize()}};
-  const material=new T.ShaderMaterial({uniforms,side:T.DoubleSide,transparent:true,depthWrite:true,toneMapped:false,
+  const uniforms={...eyeUniforms,opacity:{value:0},cloudHeight:{value:16000},cloudTime:{value:0},cloudBase:{value:280},
+    sunDir:{value:new T.Vector3(1100,640,-950).normalize()}};
+  const material=new T.ShaderMaterial({uniforms,defines:eyeUniforms.rainFogAmount?{RAIN_CLOUD_FIELD:1}:{},side:T.DoubleSide,transparent:true,depthWrite:true,toneMapped:false,
     extensions:{derivatives:true},
     vertexShader:`varying vec3 localP;varying vec3 worldP;varying vec3 cloudNormal;
+      uniform float cloudBase;uniform float cloudHeight;
+      ${CLOUD_BASE_GLSL}
       void main(){vec4 p=vec4(position,1.);vec3 n=normal;
         #ifdef USE_INSTANCING
         mat3 im=mat3(instanceMatrix);n=im*(n/vec3(dot(im[0],im[0]),dot(im[1],im[1]),dot(im[2],im[2])));p=instanceMatrix*p;
         #endif
+        p.y+=cloudBaseRipple(p.xz)*(1.-smoothstep(cloudBase,cloudBase+1800.,p.y));
         localP=p.xyz;vec4 w=modelMatrix*p;worldP=w.xyz;cloudNormal=normalize(mat3(modelMatrix)*n);
         gl_Position=projectionMatrix*viewMatrix*w;
         #include <logdepthbuf_vertex>
       }`,
-    fragmentShader:`uniform float opacity;uniform float clarity;uniform float cloudHeight;uniform float visibility;
-      uniform vec3 haze;uniform vec3 sunDir;varying vec3 localP;varying vec3 worldP;varying vec3 cloudNormal;
+    fragmentShader:`uniform float opacity;uniform float cloudHeight;
+      uniform vec3 sunDir;varying vec3 localP;varying vec3 worldP;varying vec3 cloudNormal;
       #include <logdepthbuf_pars_fragment>
       ${EYE_CLOUD_GLSL}
       float hashCloud(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -64,24 +81,23 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
         float h=clamp(localP.y/cloudHeight,0.,1.);
         float azimuth=(atan(localP.z,localP.x)+3.14159265)/6.2831853;
         vec2 uv=vec2(azimuth*64.-h*23.,h*15.);
+        float underside=smoothstep(.45,.9,abs(normalize(cloudNormal).y))*(1.-smoothstep(600.,1800.,localP.y));
+        uv=mix(uv,localP.xz/900.,underside);
         float warp=noiseCloud(vec2(azimuth*16.,h*5.),16.);
         uv+=vec2(warp*3.5,warp*.65);
         float broad=noiseCloud(uv,64.);
         float filament=noiseCloud(vec2(uv.x*2.,uv.y*3.8),128.);
         float fine=noiseCloud(vec2(uv.x*4.,uv.y*9.),256.);
         float spiral=sin(h*92.-azimuth*6.2831853*7.+warp*3.5);
-        float billow=mix(.5,.50*broad+.32*filament+.18*fine,clarity);
+        float billow=.50*broad+.32*filament+.18*fine;
         float light=max(0.,dot(normalize(cloudNormal),sunDir));
         vec3 color=mix(vec3(.24,.29,.33),vec3(.86,.90,.94),smoothstep(.02,.85,h));
-        color=color*(.83+.23*light)+(billow-.5)*(.38+.12*h)+spiral*.027*clarity+light*vec3(.08,.075,.065);
+        color=color*(.83+.23*light)+(billow-.5)*(.38+.12*h)+spiral*.027+light*vec3(.08,.075,.065);
         float distanceToCloud=length(worldP-cameraPosition);
-        float aerial=1.-exp(-distanceToCloud/(max(visibility,250.)*(3.4+9.*h)));
-        color=mix(color,haze,aerial*.86);
-        float lowFade=smoothstep(100.,650.,localP.y);
-        if(lowFade<.01)discard;
+        color=mix(eyeHaze,color,cloudTransmission(cameraPosition,normalize(worldP-cameraPosition),distanceToCloud));
         vec4 foreground=eyeCloudAlong(cameraPosition,normalize(worldP-cameraPosition),distanceToCloud);
         color=mix(color,foreground.rgb,foreground.a);
-        gl_FragColor=vec4(color,opacity*lowFade);
+        gl_FragColor=vec4(color,opacity);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`});
@@ -98,8 +114,8 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
     for(const outer of [false,true])strip((a,q)=>{const p=EyeWall.section(s,a,q),fold=Math.sin(a*7-q*15+Math.sin(a*3+q*6)*.7)*230+Math.sin(a*17-q*31)*90,r=(outer?p.outer:p.inner)+fold*Math.sin(q*Math.PI);return[Math.cos(a)*r,p.y*(outer?.94:1),Math.sin(a)*r];},levels);
     strip((a,q)=>{const p=EyeWall.section(s,a,1),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q)+Math.sin(q*Math.PI)*s.height*.025,Math.sin(a)*r];},8);
     // Close the annular cloud base, matching both side-wall bottom rings exactly.
-    // Keep the eye opening clear; the cap uses the existing cloud shader and fade.
-    strip((a,q)=>{const p=EyeWall.section(s,a,0),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q),Math.sin(a)*r];},8);
+    // Keep the eye opening clear; rain extinction, rather than a base fade, hides it.
+    strip((a,q)=>{const p=EyeWall.section(s,a,0),r=p.inner+(p.outer-p.inner)*q;return[Math.cos(a)*r,p.y*(1-.06*q),Math.sin(a)*r];},Math.max(8,Math.min(160,Math.ceil((s.outer-s.inner)/500))));
     const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
     const shell=new T.Mesh(geometry,material);shell.renderOrder=2;group.add(shell);
   }
@@ -113,22 +129,32 @@ function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
     const viewVisibility=state.clearFog?22000:weather.visibility;
     // The cloud wall exists once the central rain stops. Dense eye clouds, flat light and
     // aerial scattering conceal it first; gaps gradually reveal its continuous surface.
-    const clarity=.025+.975*EyeWall.smooth(100,170,state.intensity);
-    const alpha=current.formation*environment.wallVisibility*EyeWall.smooth(300,6500,viewVisibility)*(.15+.85*clarity);
+    const alpha=current.formation*environment.wallVisibility;
     group.visible=alpha>.001;if(!group.visible)return{sunBlocked:false,visible:false};
     const key=[state.intensity,state.eyeRadius,state.wallRadius].join('/');if(key!==signature){rebuild(current);signature=key;}
     group.position.set(state.east*1000,0,55-state.north*1000);
-    uniforms.opacity.value=alpha;uniforms.clarity.value=clarity;uniforms.cloudHeight.value=current.height;uniforms.visibility.value=viewVisibility;uniforms.haze.value.copy(haze);
+    uniforms.opacity.value=alpha;uniforms.cloudHeight.value=current.height;uniforms.cloudBase.value=current.base;uniforms.cloudTime.value=state.simTime;uniforms.eyeVisibility.value=viewVisibility;uniforms.eyeHaze.value.copy(haze);
     return{sunBlocked:EyeWall.intersects(current,{x:observer.x-group.position.x,y:observer.y,z:observer.z-group.position.z},uniforms.sunDir.value),formation:current.formation,visible:true,height:current.height,rotationPeriod:Math.PI*2/omega};
   }
   return{update,group};
 }
+// Two broad undulations, kilometre wavelengths and a bounded +/-35 m excursion.
+const CLOUD_BASE_GLSL=`uniform float cloudTime;
+  float cloudBaseRipple(vec2 p){return 35.*(.65*sin(dot(p,vec2(.0017952,.0006283))+cloudTime*.0009)+.35*sin(dot(p,vec2(-.0003021,.0012083))-cloudTime*.0006));}`;
 // Both sky and wall trace exactly the same foreground cloud banks, so openings
 // reveal the wall naturally without giant transparent-plane depth seams.
-const EYE_CLOUD_GLSL=`
+const EYE_CLOUD_GLSL=`${typeof RainField!=='undefined'?RainField.glsl:''}
   uniform vec3 eyeCenter;uniform float eyeSpan;uniform vec4 eyeRotation;
   uniform float eyeLow;uniform float eyeMid;uniform float eyeSun;
   uniform float eyeVisibility;uniform vec3 eyeHaze;
+  float cloudTransmission(vec3 origin,vec3 ray,float distanceToCloud){
+    float concentration=1.;
+    #ifdef RAIN_CLOUD_FIELD
+    concentration=mix(1.,(rainFieldDensity(origin+ray*distanceToCloud*.18,rainFogPace)+rainFieldDensity(origin+ray*distanceToCloud*.50,rainFogPace)+rainFieldDensity(origin+ray*distanceToCloud*.82,rainFogPace))/3.,rainFogAmount);
+    #endif
+    float beta=max(0.,2.99573227/max(55.,eyeVisibility)-2.99573227/11000.);
+    return exp(-max(0.,distanceToCloud)*(beta*concentration+1./80000.));
+  }
   float noiseEye(vec2 p){return .5+.20*sin(dot(p,vec2(1.37,1.91))+1.2*sin(dot(p,vec2(-.61,1.13))))+.17*cos(dot(p,vec2(-1.69,.93))+.9*sin(dot(p,vec2(.83,.57))))+.13*sin(dot(p,vec2(2.13,-1.47))+1.5*cos(dot(p,vec2(.53,1.73))));}
   float eyeField(vec2 p){return .55*noiseEye(p)+.28*noiseEye(p*2.3)+.12*noiseEye(p*5.7)+.05*noiseEye(p*13.);}
   vec4 eyeCloudAlong(vec3 origin,vec3 ray,float limit){
@@ -152,16 +178,16 @@ const EYE_CLOUD_GLSL=`
       float alpha=edge*density*smoothstep(0.,.10,coverage)*.985;
       float light=clamp(.52+(eyeField(uv+vec2(.22,-.13))-n)*3.2,0.,1.);
       vec3 color=mix(vec3(.29,.35,.40),vec3(.80,.85,.88),light)*(.87+eyeSun*.24);
-      color=mix(color,eyeHaze,(1.-exp(-distanceToLayer/max(eyeVisibility*2.5,1000.)))*.55);
+      color=mix(eyeHaze,color,cloudTransmission(origin,ray,distanceToLayer));
       sum+=transmission*alpha*color;transmission*=1.-alpha;
     }
     return vec4(sum/max(.00001,1.-transmission),1.-transmission);
   }`;
-function createEyeCloudUniforms(T){
-  return{eyeCenter:{value:new T.Vector3()},eyeSpan:{value:15000},eyeRotation:{value:new T.Vector4(1,0,0,1)},eyeLow:{value:0},eyeMid:{value:0},eyeSun:{value:0},eyeVisibility:{value:11000},eyeHaze:{value:new T.Color()}};
+function createEyeCloudUniforms(T,rainUniforms={}){
+  return{...rainUniforms,eyeCenter:{value:new T.Vector3()},eyeSpan:{value:15000},eyeRotation:{value:new T.Vector4(1,0,0,1)},eyeLow:{value:0},eyeMid:{value:0},eyeSun:{value:0},eyeVisibility:{value:11000},eyeHaze:{value:new T.Color()}};
 }
-function createEyeClouds(T){
-  const uniforms=createEyeCloudUniforms(T);
+function createEyeClouds(T,rainUniforms={}){
+  const uniforms=createEyeCloudUniforms(T,rainUniforms);
   function update(state,observer,weather,haze,phase){
     const distance=Math.hypot(state.east-observer.east,state.north-observer.north),env=EyeWall.environment(state.intensity,state.eyeRadius,state.stormRadius,distance);
     uniforms.eyeCenter.value.set(state.east*1000,0,55-state.north*1000);uniforms.eyeSpan.value=state.eyeRadius*1000;
@@ -171,33 +197,43 @@ function createEyeClouds(T){
     const cloudPhase=phase*1,c=Math.cos(cloudPhase),s=Math.sin(cloudPhase);
     uniforms.eyeRotation.value.set(c,s,-s,c);
     uniforms.eyeSun.value=weather.sunshine;uniforms.eyeVisibility.value=state.clearFog?22000:weather.visibility;uniforms.eyeHaze.value.copy(haze);
-    return env;
+    return{...env,ceiling:EyeWall.ceiling(state,weather,distance)};
   }
   return{uniforms,update};
 }
 // A continuous low ceiling, with no distant circular storm boundary drawn on the sky.
 function createStormSky(T,eyeUniforms=createEyeCloudUniforms(T)){
-  return new T.Mesh(new T.SphereGeometry(4500,32,24),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,toneMapped:false,
-    uniforms:{...eyeUniforms,top:{value:new T.Color('#45565e')},bottom:{value:new T.Color('#adb9bb')},horizonHaze:{value:new T.Color('#adb9bb')},clock:{value:0},veil:{value:0},deck:{value:0},cloudTime:{value:0}},
+  return new T.Mesh(new T.SphereGeometry(4500,32,24),new T.ShaderMaterial({defines:eyeUniforms.rainFogAmount?{RAIN_CLOUD_FIELD:1}:{},side:T.BackSide,depthWrite:false,toneMapped:false,
+    uniforms:{...eyeUniforms,top:{value:new T.Color('#45565e')},bottom:{value:new T.Color('#adb9bb')},horizonHaze:{value:new T.Color('#adb9bb')},clock:{value:0},veil:{value:0},deck:{value:0},deckHeight:{value:400},cloudTime:{value:0}},
     vertexShader:'varying vec3 pos;void main(){pos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec3 pos;uniform vec3 top;uniform vec3 bottom;uniform vec3 horizonHaze;uniform float clock;uniform float veil;uniform float deck;uniform float cloudTime;
+    fragmentShader:`varying vec3 pos;uniform vec3 top;uniform vec3 bottom;uniform vec3 horizonHaze;uniform float clock;uniform float veil;uniform float deck;uniform float deckHeight;
+      ${CLOUD_BASE_GLSL}
       ${EYE_CLOUD_GLSL}
       void main(){vec3 p=normalize(pos);float h=max(0.,p.y);
         float clouds=sin(p.x*18.+sin(p.z*16.)*1.8+clock*.006)*sin(p.z*22.+p.x*9.);
         float shade=clouds*.025*smoothstep(0.,.3,h);
         vec3 color=mix(mix(bottom,top,smoothstep(0.,.8,h))+shade,bottom,veil);
-        vec2 uv=(cameraPosition.xz+p.xz*(max(100.,900.-cameraPosition.y)/max(.065,abs(p.y))))/2100.+vec2(cloudTime*.000012,cloudTime*.000006);
-        float n=.65*noiseEye(uv)+.25*noiseEye(uv*2.8)+.10*noiseEye(uv*7.);
-        vec3 ceiling=mix(bottom,top,.28)+vec3((n-.5)*.17*(1.-veil*.94));
-        color=mix(color,mix(bottom,ceiling,smoothstep(-.025,.12,p.y)),deck);
+        color=mix(color,horizonHaze,(1.-smoothstep(.005,.18,h))*.96);
+        if(abs(p.y)>.00001){
+          float distanceToDeck=(deckHeight-cameraPosition.y)/p.y;
+          for(int i=0;i<3;i++){
+            vec2 ground=cameraPosition.xz+p.xz*distanceToDeck;
+            distanceToDeck=(deckHeight+cloudBaseRipple(ground)-cameraPosition.y)/p.y;
+          }
+          if(distanceToDeck>0.){
+            vec2 uv=(cameraPosition.xz+p.xz*distanceToDeck)/1800.+vec2(cloudTime*.000012,cloudTime*.000006);
+            uv+=vec2(noiseEye(uv*.68+8.2),noiseEye(uv*.68-3.7))*.8;
+            float n=eyeField(uv);
+            float light=clamp(.52+(eyeField(uv+vec2(.22,-.13))-n)*3.2,0.,1.);
+            vec3 ceiling=mix(vec3(.29,.35,.40),vec3(.80,.85,.88),light)+vec3((n-.5)*.10);
+            ceiling=mix(eyeHaze,ceiling,cloudTransmission(cameraPosition,p,distanceToDeck));
+            color=mix(color,ceiling,deck);
+          }
+        }
         vec4 banks=eyeCloudAlong(cameraPosition,p,800000.);color=mix(color,banks.rgb,banks.a);
         gl_FragColor=vec4(color,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
-        // Fog uniforms are converted into the renderer's current output space,
-        // then applied after tone mapping. Match both that space and that order.
-        vec3 fogOutput=linearToOutputTexel(vec4(horizonHaze,1.)).rgb;
-        gl_FragColor.rgb=mix(gl_FragColor.rgb,fogOutput,max(veil,(1.-smoothstep(.005,.18,h))*.96));
       }`}));
 }
 if(typeof module!=='undefined'&&module.exports)module.exports=EyeWall;

@@ -9,6 +9,16 @@ assert.ok(elevation(small)>elevation(large),'larger real-radius eyes have lower 
 assert.ok(E.intersects(strong,{x:0,y:20,z:0},{x:1,y:0.5,z:0}));
 assert.ok(!E.intersects(strong,{x:0,y:20,z:0},{x:0,y:1,z:0}),'zenith remains open');
 assert.ok(!E.intersects(strong,{x:0,y:20,z:0},{x:1,y:2,z:0}),'high sun can clear cloud top');
+const ceilingState={intensity:180,eyeRadius:15,wallRadius:40,stormRadius:110};
+assert.equal(E.ceiling(ceilingState,{rain:0,sunshine:0},60).base,400);
+assert.equal(E.ceiling(ceilingState,{rain:10,sunshine:0},180).base,650);
+assert.equal(E.ceiling(ceilingState,{rain:10,sunshine:0},25).base,280);
+assert.equal(E.ceiling({...ceilingState,intensity:20},{rain:10,sunshine:0},25).base,650,'weak systems have no low storm-circle deck');
+assert.equal(E.ceiling(ceilingState,{rain:0,sunshine:1},180).coverage,0);
+assert.ok(E.ceiling(ceilingState,{rain:10,sunshine:0},180).coverage>.9);
+assert.equal(E.ceiling(ceilingState,{rain:10,sunshine:0},0).coverage,0,'eye remains open');
+assert.ok(E.cloudTransmission(11000,400)>.99&&E.cloudTransmission(350,400)<.04,'rain extinction hides the same detailed cloud base');
+assert.ok(E.cloudTransmission(350,100)>E.cloudTransmission(350,400));
 const context={console:{warn(){}}};vm.createContext(context);vm.runInContext(fs.readFileSync(require.resolve('../three-vendor.min.js'),'utf8'),context);vm.runInContext(fs.readFileSync(require.resolve('../src/eye-wall.js'),'utf8'),context);
 const T=context.THREE,scene=new T.Scene(),wall=context.createEyeWall(T,scene),haze=new T.Color('#aabbcc');
 const state={intensity:180,eyeRadius:15,wallRadius:40,east:0,north:0,simTime:0,clearFog:false},weather={visibility:11000},observer={x:0,y:20,z:55,east:0,north:0};

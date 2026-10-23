@@ -5,6 +5,7 @@ const formulas={'eye.development':'控制眼和眼墙随强度从无到有的发
 Object.assign(meanings,{coreExponent:'内核风速幂律指数',fastFraction:'外侧快速衰减分量占比',fastLength:'外侧快速衰减尺度（km）',slowLength:'外侧缓慢衰减尺度（km）',shoulder:'最大风速处平滑连接宽度（km）',tailTarget:'外围影响半径处参考风速比例',background:'极远处背景风速比例',diameter:'有效雨滴尺寸尺度（mm）',extinction:'雨滴光学消光系数（1/m）',concentration:'按降雨通量归一化的粒子谱浓度',numberDensity:'雨滴数浓度（个/m³）',liquidWater:'液态水含量（g/m³）',fallSpeed:'体积加权雨滴终速（m/s）',rainDensity:'渲染粒子数量倍率',rainTrail:'雨滴曝光拖尾时间（秒）',curtainFall:'白色雨幕下落速度（m/s）',curtainDrift:'白色雨幕随风移动比例',sharpEye:'成熟眼区降雨边界陡峭程度',rainStart:'眼区开始降雨的半径（km）',rainEnd:'内侧降雨达到眼墙量级的半径（km）'});
 Object.assign(formulas,{'rain.mistTransition':'雨丝变细变密的视觉过渡（0–1）；默认45 kt开始混入雨雾，135 kt完成，非实测普适阈值。','rain.effectiveDiameter':'通量守恒物理雨滴谱的尺寸尺度（mm）；默认只随雨量变化，与画面随风变细的粒子分开。','weather.rainExtinction':'有效雨雾消光（1/m）：100 kt以下不受风影响，137 kt后快速增强，165/180 kt后逐步放缓；本地170 kt、70 mm/h约100 m。'});
 Object.assign(meanings,{windU:'165 kt以内消光曲线采用的风速（kt）',rapidGain:'137 kt后消光增益的系数',windSlope:'165 kt处消光增强倍率对风速的斜率',windTail:'165/180 kt后逐步放缓的风速等效增量（kt）',windGain:'强风对雨雾消光的增强倍率',wavelength:'浓度波动的空间波长（m）',travel:'浓度条带的累计平移相位（rad）',pace:'相对雨滴波动的速度比例',cloudBase:'眼墙云底海拔（m）'});
+Object.assign(meanings,{deckHeight:'连续云底基准海拔（m）',base:'当前计算的基准值',outside:'暴风圈外围高度过渡程度',wall:'眼墙较低云底的过渡程度',showers:'外围阵雨连续云盖覆盖程度',concentration:'沿视线的雨雾浓度倍率',beta:'降雨光学消光系数（1/m）'});
 meanings.rainFall='画面雨丝下落速度（m/s，含视觉倍率）';
 const short=text=>String(text).replace(/\s+/g,' ').slice(0,38);
 function role(e){

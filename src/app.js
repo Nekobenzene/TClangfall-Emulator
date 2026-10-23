@@ -113,7 +113,7 @@
     const ambient = new T.HemisphereLight('#c1d0d4', '#596364', 2.3); ambientLight=ambient;scene.add(ambient);
     const sun = new T.DirectionalLight('#c6d2d2', 1.2);sunLight=sun; sun.position.set(1100,640,-950); scene.add(sun);scene.add(sun.target);
     sun.shadow.mapSize.set(mobileControls()?1024:2048,mobileControls()?1024:2048);Object.assign(sun.shadow.camera,{left:-440,right:440,top:440,bottom:-440,near:10,far:3500});sun.shadow.bias=-.00025;sun.shadow.normalBias=.25;sun.shadow.radius=2;
-    eyeClouds=createEyeClouds(T);sky=createStormSky(T,eyeClouds.uniforms);scene.add(sky);
+    eyeClouds=createEyeClouds(T,rainFog.uniforms);sky=createStormSky(T,eyeClouds.uniforms);scene.add(sky);
     eyeWall=createEyeWall(T,scene,eyeClouds.uniforms);
     const mat = (color, extra = {}) => new T.MeshStandardMaterial({color,roughness:.88,flatShading:true,...extra});
     const cube = new T.BoxGeometry(1,1,1), instanceGroups = new Map();
@@ -382,12 +382,12 @@
     scene.fog.density=atmosphere.fogDensity;
     const severity=clamp(weather.rain/100+ms/200,0,1),sun=atmosphere.sun;
     scene.fog.color.setRGB(.65-severity*.10,.71-severity*.10,.72-severity*.09);
-    sky.material.uniforms.clock.value=t;sky.material.uniforms.veil.value=Math.max(M.smooth(22,72,weather.rain),M.smooth(40,100,kt))*(1-sun);sky.material.uniforms.top.value.setRGB(.29-severity*.06,.36-severity*.07,.40-severity*.07).lerp(new T.Color().setRGB(.15,.43,.80),atmosphere.blue);
+    sky.material.uniforms.clock.value=t;sky.material.uniforms.veil.value=M.smooth(22,72,weather.rain)*(1-sun);sky.material.uniforms.top.value.setRGB(.29-severity*.06,.36-severity*.07,.40-severity*.07).lerp(new T.Color().setRGB(.15,.43,.80),atmosphere.blue);
     sky.material.uniforms.bottom.value.copy(scene.fog.color).lerp(new T.Color().setRGB(.68,.82,.94),atmosphere.blue);
     sky.material.uniforms.horizonHaze.value.copy(scene.fog.color);
     const eyeView=eyeWall.update(state,weather,observer(),scene.fog.color),solarCover=eyeView.sunBlocked?eyeView.formation:0;eyeViewState=eyeView;
     const eyeEnvironment=eyeClouds.update(state,observer(),weather,scene.fog.color,eyeWall.group.rotation.y);
-    sky.material.uniforms.deck.value=eyeEnvironment.deck;sky.material.uniforms.cloudTime.value=state.simTime;
+    sky.material.uniforms.deck.value=eyeEnvironment.ceiling.coverage;sky.material.uniforms.deckHeight.value=eyeEnvironment.ceiling.base;sky.material.uniforms.cloudTime.value=state.simTime;
     sunLight.color.set(sun>.4?'#fff1d6':'#d2dfe5');sunLight.intensity=atmosphere.direct*(1-solarCover*.4);ambientLight.intensity=atmosphere.ambient;
     ambientLight.color.set(sun>.4?'#d9ebff':'#cedde6');ambientLight.groundColor.set(sun>.4?'#8b8770':'#626d6a');renderer.toneMappingExposure=atmosphere.exposure;
     const shadowX=camera.position.x,shadowZ=camera.position.z-140;
@@ -570,6 +570,7 @@
   // Read-only inspection hook for functional verification, no external services.
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
+  window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base});
   window.TyphoonSimulator.rainDiagnostics=()=>{
     const count=rainGeo?.drawRange.count/2,patchSamples=[],points=rain?.userData.points;
     for(let i=0;i<Math.min(count||0,256);i++)patchSamples.push(rainFog.densityAt(rain.position.x+points[i*3],rain.position.y+points[i*3+1],rain.position.z+points[i*3+2]));
