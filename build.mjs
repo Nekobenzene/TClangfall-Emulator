@@ -3,12 +3,13 @@ import {configurationBuild} from './tools/config-build.mjs';
 import {formulaReference} from './tools/formula-reference.mjs';
 import {describeConfiguration} from './tools/config-descriptions.mjs';
 const read = p => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
-const appNames=['sliders','sites','camera','touch','mobile-view','guide','view-effects','wind-colors','map','scenery','flood-debris','eye-wall','app'];
+const appNames=['sliders','sites','camera','touch','mobile-view','guide','view-effects','wind-colors','map','scenery','flood-debris','eye-wall','rain-grains','sound','app'];
 const template=read('./src/index.source.html');
 const configBuild=configurationBuild();
 let html=configBuild.markup(template);
 const model=configBuild.javascript(read('./src/model.js'),'model');
-const app=appNames.map(name=>configBuild.javascript(read('./src/'+name+'.js'),name)).join('\n')+'\n'+configBuild.javascript(read('./src/config-entry.js'),'config-entry');
+// PCM is an approved embedded asset, not a text override in the parameter catalog.
+const app=appNames.map(name=>name==='rain-grains'?read('./src/'+name+'.js'):configBuild.javascript(read('./src/'+name+'.js'),name)).join('\n')+'\n'+configBuild.javascript(read('./src/config-entry.js'),'config-entry');
 const css=configBuild.stylesheet(read('./src/style.css')+'\n'+read('./src/config-entry.css')),catalog=describeConfiguration(configBuild.finish(css));
 const runtime=read('./tools/vendor/acorn.cjs')+'\n'+read('./src/config-runtime.js');
 const inlineJSON=value=>JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');

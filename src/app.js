@@ -2,7 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const M = StormModel, RAD = Math.PI / 180;
-  const defaults={east:22.4,north:16.8,intensity:110,rainStrength:100,eyeRadius:15,wallRadius:40,stormRadius:110,influenceRadius:260,rmw:28,extent:180,mapEast:0,mapNorth:0,mapMode:'pan',siteId:'coast',floor:6,motionHeading:0,motionSpeed:0,advect:false,timeScale:60,simTime:0,yaw:8,pitch:-1.5,paused:false,sound:false,time:0};
+  const defaults={east:22.4,north:16.8,intensity:110,rainStrength:100,eyeRadius:15,wallRadius:40,stormRadius:110,influenceRadius:260,rmw:28,extent:180,mapEast:0,mapNorth:0,mapMode:'pan',siteId:'coast',floor:6,motionHeading:0,motionSpeed:0,advect:false,timeScale:60,simTime:0,yaw:8,pitch:-1.5,paused:false,sound:false,soundVolume:50,time:0};
   Object.assign(defaults,{freeCamera:false,freeX:0,freeY:18.9,freeZ:55,flightSpeed:35,zoom:1,clearFog:false});
   const state={...defaults},flightKeys=new Set(),touchFlightKeys=new Set(),touchReleases=[];
   const mobileControls=()=>matchMedia("(pointer:coarse)").matches||innerWidth<=1000;
@@ -18,7 +18,8 @@
   const fullscreenActive=()=>document.fullscreenElement===view||view.classList.contains('is-fullscreen');
   let windScene,floodDebris,eyeWall,eyeClouds,rainFog,eyeViewState={visible:false},particleCamera=null,surgeMemory={level:0,crest:0,holdRadius:0};
   let sceneReady = false, last = performance.now(), renderedFrames = 0, fps = 60, elapsed = 0, dragging = null;
-  let audioCtx, noiseSource, soundGain, lowFilter;
+  let viewportDirty=true,bufferWidth=0,bufferHeight=0,bufferResizes=0;
+  let audioCtx,weatherSound,soundTimer=0;
   const view = $('view'), map = $('map'), mapCtx = map.getContext('2d'), glass = $('glass'), glassCtx = glass.getContext('2d');
   const clamp = M.clamp;
   const mapController=createStormMap({canvas:map,state,getTarget:()=>target,getCamera:()=>camera,getObserver:observer,onChange:()=>updateTarget(),onSelectSite:selectSite});
@@ -63,7 +64,7 @@
     Object.assign(state,{eyeRadius:cfg.eyeRadius,wallRadius:cfg.wallRadius,stormRadius:cfg.stormRadius,influenceRadius:cfg.influenceRadius,rmw:cfg.rmw});
     target=sampleField();
     $('intensity').value=state.intensity;$('intensityNumber').value=state.intensity;
-    const fill=(state.intensity-20)/1.8;$('intensity').style.background='linear-gradient(90deg,#b6d4bd '+fill+'%,#34474b '+fill+'%)';
+    const fill=(state.intensity-20)/1.8;$('intensity').style.backgroundImage='linear-gradient(90deg,#b6d4bd '+fill+'%,#34474b '+fill+'%)';
     $('category').textContent=category(state.intensity);
     for(const [id,min] of [['eyeRadius',2],['wallRadius',state.eyeRadius+4],['stormRadius',state.wallRadius+8],['influenceRadius',cfg.hasStorm?state.stormRadius+20:40]]){
       $(id).min=min;$(id+'Range').min=min;$(id).value=state[id];$(id+'Range').value=state[id];
@@ -88,13 +89,28 @@
   function resizeCanvases() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
     const md = mapDimensions();
-    map.width = Math.round(md.w * dpr); map.height = Math.round(md.h * dpr);
+    const mw=Math.round(md.w*dpr),mh=Math.round(md.h*dpr);
+    if(map.width!==mw)map.width=mw;if(map.height!==mh)map.height=mh;
     mapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const rect = view.getBoundingClientRect();
-    glass.width = Math.round(rect.width * dpr); glass.height = Math.round(rect.height * dpr);
-    glassCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (renderer) { renderer.setSize(rect.width, rect.height); camera.aspect = rect.width / rect.height; camera.updateProjectionMatrix(); }
+    viewportDirty=true;
     drawMap();
+  }
+  function syncSceneViewport(){
+    if(!viewportDirty||!renderer)return;
+    const width=Math.max(1,view.clientWidth),height=Math.max(1,view.clientHeight),dpr=Math.min(devicePixelRatio||1,2);
+    const moving=document.querySelector('.workspace').getAnimations().some(a=>a.transitionProperty==='grid-template-columns');
+    camera.aspect=width/height;camera.updateProjectionMatrix();
+    // Never clear the visible canvas in a ResizeObserver callback. Keep rendering
+    // into the existing buffers during the layout transition; resize just before
+    // the final frame is drawn. Projection changes leave the centre ray fixed.
+    if(!moving||!bufferWidth){
+      if(bufferWidth!==width||bufferHeight!==height){renderer.setSize(width,height,false);bufferWidth=width;bufferHeight=height;bufferResizes++;}
+      const gw=Math.round(width*dpr),gh=Math.round(height*dpr);
+      if(glass.width!==gw)glass.width=gw;if(glass.height!==gh)glass.height=gh;
+      viewportDirty=false;
+    }
+    const rect=view.getBoundingClientRect();
+    glassCtx.setTransform(glass.width/rect.width,0,0,glass.height/rect.height,0,0);
   }
   function drawMap(){mapController.draw();}
 
@@ -425,6 +441,16 @@
     $('hudRainValue').textContent=Math.round(weather.rain)+' mm/h';$('hudSurgeValue').textContent='+'+surgeLevel.toFixed(2)+' m';$('hudSurgeTrend').textContent=waterTrend();$('surgeTrend').textContent=waterTrend();
     for(const [toggle,panel]of [['hudWindVisible','hudWindPanel'],['hudRainVisible','hudRainPanel'],['hudWaterVisible','hudWaterPanel'],['hudMapVisible','hudMapPanel']])$(panel).hidden=!$(toggle).checked;
   }
+  function createSound(){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    weatherSound=WeatherSound.create(audioCtx,M);
+  }
+  function syncSoundTimer(){
+    clearInterval(soundTimer);soundTimer=state.sound&&!document.hidden?setInterval(updateSound,60):0;
+  }
+  function updateSound(){
+    weatherSound?.update(weather,{enabled:state.sound,paused:state.paused,volume:state.soundVolume});
+  }
   function updateReadings() {
     updateLocationText();
     const ms=weather.ms,kt=weather.sustained,t=state.time;
@@ -443,7 +469,7 @@
     $('windArrow').style.transform=`rotate(${to}deg)`;$('windArrow').style.opacity=deg===null?'.25':'1';
     $('mapWindArrow').style.transform=`rotate(${deg===null?0:deg+180+45}deg)`;
     $('windMeter').style.width=`${Math.min(100,kt/220*100)}%`;
-    if(soundGain&&audioCtx){const volume=state.paused?0:clamp((ms/90+weather.rain/180)*.17,0,.23);soundGain.gain.setTargetAtTime(state.sound?volume:0,audioCtx.currentTime,.2);lowFilter.frequency.setTargetAtTime(250+ms*13,audioCtx.currentTime,.4);}
+    updateSound();
   }
   function frame(now) {
     const rawdt=(now-last)/1000;last=now;const dt=Math.min(rawdt,.045);
@@ -454,11 +480,16 @@
     if(!state.paused){state.time+=logicalDt;state.simTime+=logicalDt*state.timeScale;if(state.advect&&state.motionSpeed>0){const km=state.motionSpeed*1.852*logicalDt*state.timeScale/3600;state.east+=Math.sin(state.motionHeading*RAD)*km;state.north+=Math.cos(state.motionHeading*RAD)*km;}}
     target=sampleField();
     const blend=1-Math.exp(-logicalDt*(target.region==='outer'?16:6));
-    ['sustained','meanMs','ms','gust','rain','visibility','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
+    const cloudTarget=Math.max(target.cloudCover,weather.rain>0?1:0);
+    weather.cloudCover+=(cloudTarget-weather.cloudCover)*(1-Math.exp(-logicalDt*12));
+    const rainReady=M.smooth(.98,.999,weather.cloudCover);
+    weather.rain+=(target.rain*rainReady-weather.rain)*blend;
+    if(target.rain===0&&weather.rain<.001)weather.rain=0;
+    ['sustained','meanMs','ms','gust','visibility','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
     if(target.ms>.001){const next=Math.atan2(target.vn,target.ve),difference=Math.atan2(Math.sin(next-flowAngle),Math.cos(next-flowAngle));flowAngle+=difference*blend;}
     weather.ve=Math.cos(flowAngle)*weather.ms;weather.vn=Math.sin(flowAngle)*weather.ms;
 
-    if(sceneReady){updateCamera();animateWeather(step,state.paused?0:logicalDt,logicalDt);}drawGlass(step);
+    if(sceneReady){syncSceneViewport();updateCamera();animateWeather(step,state.paused?0:logicalDt,logicalDt);}drawGlass(step);
     elapsed+=dt;if(elapsed>.12){updateReadings();drawMap();elapsed=0;}
     requestAnimationFrame(frame);
   }
@@ -543,18 +574,23 @@
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.fullscreenElement&&view.classList.contains('is-fullscreen')){releaseMouseLook();view.classList.remove('is-fullscreen');$('fullscreen').textContent='全屏';syncCameraControls();resizeCanvases();}});
     for(const id of ['hudWindVisible','hudRainVisible','hudWaterVisible','hudMapVisible','hudWindMode'])$(id).onchange=()=>{updateHud();resizeCanvases();};
     $('pauseButton').onclick=()=>{state.paused=!state.paused;$('pauseButton').textContent=state.paused?'继续模拟':'暂停模拟';$('pauseButton').setAttribute('aria-pressed',String(state.paused));};
+    $('soundVolume').oninput=()=>{
+      state.soundVolume=clamp(Number($('soundVolume').value),0,100);
+      $('soundVolumeValue').textContent=state.soundVolume+'%';
+      updateSound();
+    };
     $('soundButton').onclick=async()=>{
       try{
-        if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();const b=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),d=b.getChannelData(0);let brown=0;for(let i=0;i<d.length;i++){const white=Math.random()*2-1;brown=(brown+.022*white)/1.023;d[i]=brown*3+white*.08;}noiseSource=audioCtx.createBufferSource();noiseSource.buffer=b;noiseSource.loop=true;lowFilter=audioCtx.createBiquadFilter();lowFilter.type='lowpass';lowFilter.frequency.value=650;soundGain=audioCtx.createGain();soundGain.gain.value=0;noiseSource.connect(lowFilter).connect(soundGain).connect(audioCtx.destination);noiseSource.start();}
-        await audioCtx.resume();state.sound=!state.sound;$('soundButton').textContent=state.sound?'关闭风雨声':'开启风雨声';$('soundButton').setAttribute('aria-pressed',String(state.sound));
+        if(!audioCtx)createSound();
+        await audioCtx.resume();state.sound=!state.sound;$('soundButton').textContent=state.sound?'关闭风雨声':'开启风雨声';$('soundButton').setAttribute('aria-pressed',String(state.sound));syncSoundTimer();updateSound();
       }catch(e){$('soundButton').textContent='声音不可用';}
     };
     $('aboutButton').onclick=()=>$('about').showModal();$('about').addEventListener('click',e=>{if(e.target===$('about')){const r=$('about').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('about').close();}});
     $('restoreButton').onclick=()=>{if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();lastShadowTime=-1;updateReadings();};
-    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
+    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound,soundVolume=state.soundVolume;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound,soundVolume});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
 
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
-    document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
+    document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();syncSoundTimer();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
   }
   bindEvents();UsageGuide.bind();syncCameraControls();SliderScales.decorateAll();updateTarget('wall');resizeCanvases();
   try{initScene();$('loading').hidden=true;}catch(e){console.error(e);$('loading').hidden=true;$('renderError').hidden=false;}
@@ -562,8 +598,10 @@
   // Read-only inspection hook for functional verification, no external services.
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
+  window.TyphoonSimulator.audioDiagnostics=()=>weatherSound?.diagnostics();
   window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base,motion:eyeClouds?.diagnostics(weather)});
   window.TyphoonSimulator.mistDiagnostics=()=>mist?.diagnostics();
+  window.TyphoonSimulator.viewportDiagnostics=()=>({bufferWidth,bufferHeight,bufferResizes,aspect:camera?.aspect,centerDirection:camera?{x:-camera.matrixWorld.elements[8],y:-camera.matrixWorld.elements[9],z:-camera.matrixWorld.elements[10]}:null});
   window.TyphoonSimulator.rainDiagnostics=()=>{
     const count=rainGeo?.drawRange.count/2,patchSamples=[],points=rain?.userData.points;
     for(let i=0;i<Math.min(count||0,256);i++)patchSamples.push(rainFog.densityAt(rain.position.x+points[i*3],rain.position.y+points[i*3+1],rain.position.z+points[i*3+2]));

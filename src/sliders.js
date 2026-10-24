@@ -15,7 +15,7 @@ const SliderScales=(()=>{
     return [...new Set(values)].map(v=>({position:(v-min)/(max-min)*100,label:(Math.abs(v)>=100?Math.round(v):Number(v.toFixed(1)))+unit}));
   }
   function decorateAll(){
-    for(const input of document.querySelectorAll('input[type="range"]')){
+    for(const input of document.querySelectorAll('input[type="range"]:not([data-no-ruler])')){
       const wrap=document.createElement('span');wrap.className='scaled-slider';wrap.dataset.slider=input.id;
       input.before(wrap);wrap.appendChild(input);
       const ruler=document.createElement('span');ruler.className='slider-ruler';ruler.id=input.id+'Scale';wrap.appendChild(ruler);

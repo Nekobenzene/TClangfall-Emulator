@@ -50,3 +50,22 @@ near(rainfall(20),rainfall(28));near(rainfall(28),rainfall(33));
 assert.ok(rainfall(20,60)/rainfall(100,60)>1.8);
 const corrected=M.structure({eyeRadius:100,wallRadius:10,stormRadius:4,influenceRadius:5},110);assert.ok(corrected.eyeRadius<corrected.rmw&&corrected.rmw<corrected.wallRadius&&corrected.wallRadius<corrected.stormRadius&&corrected.stormRadius<corrected.influenceRadius);
 console.log('PASS: continuous eye/eyewall formation and clearing, flat storm rain and eyewall plateau, stronger weak-system rain gradient, 170 kt = 3 m slow surge, plus previous wind, boundary, squall, debris and rain controls.');
+
+// Clouds precede showers; dry overcast becomes more common toward the inner bands.
+let previousCover=2;
+for(const radius of [170,195,220,245]){
+ let meanCover=0,dryOvercast=0;
+ for(let i=0;i<1500;i++){
+  const w=M.sample(radius,0,130,{},i*.2);meanCover+=w.cloudCover;
+  if(w.rain>0)assert.equal(w.cloudCover,1);
+  if(w.rain===0&&w.cloudCover>.9)dryOvercast++;
+ }
+ meanCover/=1500;assert(meanCover<previousCover);previousCover=meanCover;
+ if(radius>=195)assert(dryOvercast>0,'outer bands allow dry overcast');
+}
+const cfgCloud=M.structure({}),join=cfgCloud.bandRadius+(cfgCloud.influenceRadius-cfgCloud.bandRadius)*.38;
+for(let i=0;i<200;i++)for(const r of [cfgCloud.bandRadius,join]){
+ const a=M.sample(r-.00001,0,130,{},i*.2),b=M.sample(r+.00001,0,130,{},i*.2);
+ assert(Math.abs(a.rain-b.rain)<.01);assert(Math.abs(a.cloudCover-b.cloudCover)<.001);
+}
+console.log('PASS rain/cloud ordering, dry overcast duty and continuous storm-circle join');

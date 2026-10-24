@@ -3,7 +3,7 @@ const UsageGuide=(()=>{
  function bind(){
   const $=id=>document.getElementById(id),workspace=document.querySelector('.workspace'),sidebar=$('settingsPanel'),toggle=$('settingsToggle'),dialog=$('usageGuide');
   const mobile=()=>matchMedia('(pointer:coarse)').matches||innerWidth<=1000;
-  const setSidebar=open=>{workspace.classList.toggle('sidebar-collapsed',!open);toggle.setAttribute('aria-expanded',String(open));toggle.querySelector('span').textContent=open?'收起设置':'台风设置';};
+  const setSidebar=open=>{workspace.classList.toggle('sidebar-collapsed',!open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'收起设置':'展开设置');toggle.querySelector('span').textContent='设置';};
   toggle.onclick=()=>setSidebar(workspace.classList.contains('sidebar-collapsed'));
   // Older browsers without native named-details grouping still keep one category open.
   const groups=[...sidebar.querySelectorAll('.control-group')];
@@ -18,7 +18,7 @@ const UsageGuide=(()=>{
    });
   }));
   const steps=[
-   {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“台风设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“台风设置”展开参数。'},
+   {title:'观察与环视',target:'#view',text:()=>mobile()?'在视窗内单指拖动环视，双指捏合缩放。下方是观测点的风雨读数；页面下方“设置”展开参数。':'在视窗内按住鼠标拖动，或点击视窗后按方向键环视；滚轮缩放。下方是观测点读数，右侧“设置”展开参数。'},
    {title:'换楼房与楼层',target:'.observer-controls',text:()=> '选择一座观测楼房，再拖动楼层滑条或输入楼层。不同地点和高度有不同的视野；自由飞行时先返回楼房，才能调节楼层。'},
    {title:'在地图定位风暴',target:'.map-section',group:'.map-section',text:()=> '地图默认拖动平移，双指或滚轮缩放。先开启“移动风暴中心”，再点击或拖动设置中心；关掉开关后恢复平移。“楼群”可定位观测楼房。'},
    {title:'独立调节风与雨',target:'.intensity-section',group:'.intensity-section',text:()=> '台风强度表示最大一分钟持续风，观测点读数还取决于距中心的位置。“独立雨强”可单独调节；风圈大小在“风圈结构”中设置。'},

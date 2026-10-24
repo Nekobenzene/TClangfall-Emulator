@@ -195,18 +195,27 @@
     else{
       const mix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius);
       const rare=hash(Math.floor(time/18.7)+307)<.045+.09*inward?1:0;
-      const shower=.15+75*Math.pow(rainPulse,1.25)+190*rare*Math.pow(rainPulse,2.4);
+      const shower=(75*Math.pow(rainPulse,1.25)+190*rare*Math.pow(rainPulse,2.4))*smooth(.02,.08,rainPulse);
       rain=((1-mix)*26*scale*(1+.035*Math.sin(time*.9))+mix*shower*outerScale)*rainEdge;
     }
     const eyeSun=configured('weather.eyeSun',()=>hasEye?smooth(145,180,intensity)*(1-smooth(eyeRadius*.35,eyeRadius*.88,radius)):0,{hasEye,intensity,eyeRadius,radius});
     const breakMix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius),dryBreak=(1-smooth(.02,.18,rainPulse))*breakMix;
-    const sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
+    let sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain*.90,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
+    // Cloud events are broader and more frequent than rain, with an advance cloud shoulder.
+    const futurePulse=offset=>clamp(.72*squall(time+offset-.65,5,inward,rainOccurrence)+.38*squall(time+offset+1.4,47,inward,rainOccurrence),0,1);
+    const advanceCloud=smooth(0,.015,Math.max(rainPulse,futurePulse(.35),futurePulse(.7)));
+    const dryCloud=smooth(.015,.12,squall(time,119,inward,.45+.55*inward));
+    const eyeCloud=hasEye&&radius<eyeRadius?(1-eyeClearing*(1-smooth(eyeRadius*.25,eyeRadius,radius))):1;
+    const cloudEdge=1-smooth(influenceRadius,influenceRadius+30,radius);
+    const cloudCore=1-smooth(bandRadius+(influenceRadius-bandRadius)*.38,bandRadius+(influenceRadius-bandRadius)*.62,radius);
+    const cloudCover=rain>0?1:clamp(Math.max(cloudCore*eyeCloud,advanceCloud*cloudEdge*breakMix,dryCloud*cloudEdge*breakMix),0,1);
+    sunshine=Math.min(sunshine,1-cloudCover);
     const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction,sustained);
     // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
     const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
-    return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
+    return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,cloudCover,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
   const api={sample,meanWind,structure,visuals,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

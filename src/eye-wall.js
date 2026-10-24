@@ -47,8 +47,8 @@ const EyeWall=(()=>{
     const outside=state.intensity<34?1:smooth(state.stormRadius*.95,state.stormRadius*1.05,distance);
     const wall=state.intensity<67?0:1-smooth(state.wallRadius,state.wallRadius+15,distance);
     const base=(400-120*wall)*(1-outside)+650*outside;
-    const showers=smooth(.15,3,weather.rain??0)*(1-(weather.sunshine??0));
-    return{base,coverage:env.inEye?0:Math.max(env.deck,showers*.98)};
+    const cover=(weather.rain??0)>0?1:(weather.cloudCover??0);
+    return{base,coverage:Math.max(env.inEye?0:env.deck,cover)};
   }
   // Rain-only extinction preserves far dry-eye cloud detail; the 11 km background
   // component is removed before applying a weak, clear-air distance haze.
