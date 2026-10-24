@@ -68,6 +68,7 @@ export function configurationBuild(){
  }
  function stylesheet(css){return{source:css,patches:embedded(css,'style','css')};}
  function finish(css){return{version:1,entries,formulas,css,aliases:{
+  'cloud.baseWindFactor':entries.find(e=>e.file==='src/eye-wall.js'&&e.scope?.endsWith('cloudWindFactor')&&e.type==='number')?.key,
   'eye.cloudRotationRatio':entries.find(e=>e.file==='src/eye-wall.js'&&e.scope?.endsWith('cloudPhase')&&e.type==='number')?.key,
   'eye.cloudClearIntensity':entries.find(e=>e.file==='src/eye-wall.js'&&e.scope?.endsWith('eyeClouds')&&e.default===190)?.key,
   'weather.eyeRainStopsAt':entries.find(e=>e.file==='src/model.js'&&e.scope?.endsWith('eyeClearing')&&e.default===100)?.key,

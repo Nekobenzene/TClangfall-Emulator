@@ -19,6 +19,11 @@ assert.ok(E.ceiling(ceilingState,{rain:10,sunshine:0},180).coverage>.9);
 assert.equal(E.ceiling(ceilingState,{rain:10,sunshine:0},0).coverage,0,'eye remains open');
 assert.ok(E.cloudTransmission(11000,400)>.99&&E.cloudTransmission(350,400)<.04,'rain extinction hides the same detailed cloud base');
 assert.ok(E.cloudTransmission(350,100)>E.cloudTransmission(350,400));
+const drift=E.cloudMotion({sustained:100,ve:300,vn:400});
+assert.ok(Math.abs(drift.speed-100*1852/3600*1.3)<1e-10);
+assert.ok(Math.abs(drift.x/drift.z+.75)<1e-10,'cloud direction follows east/north flow with world north=-z');
+assert.equal(E.cloudMotion({sustained:0,ve:100,vn:0}).speed,0,'gusts alone do not move a calm cloud base');
+assert.equal(E.cloudMotion({sustained:100,ve:3,vn:4}).speed,drift.speed,'gust magnitude does not change the sustained-wind multiplier');
 const context={console:{warn(){}}};vm.createContext(context);vm.runInContext(fs.readFileSync(require.resolve('../three-vendor.min.js'),'utf8'),context);vm.runInContext(fs.readFileSync(require.resolve('../src/eye-wall.js'),'utf8'),context);
 const T=context.THREE,scene=new T.Scene(),wall=context.createEyeWall(T,scene),haze=new T.Color('#aabbcc');
 const state={intensity:180,eyeRadius:15,wallRadius:40,east:0,north:0,simTime:0,clearFog:false},weather={visibility:11000},observer={x:0,y:20,z:55,east:0,north:0};
@@ -56,6 +61,14 @@ for(const phase of [0,.8,6.28,25,100]){
   assert.ok(Math.abs(r.x*point.x+r.z*point.z-100)<1e-9&&Math.abs(r.y*point.x+r.w*point.z)<1e-9,'clouds follow northern-hemisphere counterclockwise circulation');
 }
 const sharedSky=context.createStormSky(T,clouds.uniforms),sharedWall=context.createEyeWall(T,scene,clouds.uniforms);
+const advected={visibility:11000,sunshine:0,sustained:100,ve:300,vn:400};
+clouds.update(state,observer,advected,haze,0,2);
+assert.ok(Math.abs(clouds.uniforms.deckShift.value.x-drift.x*2)<1e-9&&Math.abs(clouds.uniforms.deckShift.value.y-drift.z*2)<1e-9,'actual weather seconds integrate motion in metres');
+const still=clouds.uniforms.deckShift.value.clone();clouds.update(state,observer,{...advected,ve:-300},haze,0,0);
+assert.ok(clouds.uniforms.deckShift.value.equals(still),'pause and edits preserve accumulated position');
+state.simTime=10;clouds.update(state,observer,advected,haze,0,0);state.simTime=0;clouds.update(state,observer,advected,haze,0,0);
+assert.equal(clouds.uniforms.deckShift.value.length(),0,'reset clears cloud displacement');
+assert.equal(sharedSky.material.uniforms.deckShift,clouds.uniforms.deckShift);
 sharedWall.update(state,weather,observer,haze);
 assert.equal(sharedSky.material.uniforms.eyeLow,sharedWall.group.children[0].material.uniforms.eyeLow,'sky gaps and wall occlusion trace the same cloud coverage');
 state.intensity=190;clouds.update(state,observer,weather,haze,0);assert.equal(clouds.uniforms.eyeLow.value+clouds.uniforms.eyeMid.value,0,'all interior cloud layers clear at 190 kt');

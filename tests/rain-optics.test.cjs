@@ -9,7 +9,7 @@ for(const rate of [0,.1,10,50,200,500])for(const kt of [0,65,80,95,110,200]){
 const base=M.rainOptics(0,50);
 for(let kt=46;kt<=135;kt++){
  const o=M.rainOptics(kt,50);near(o.diameter,base.diameter);near(o.numberDensity,base.numberDensity);near(o.extinction,base.extinction);
- const a=M.visuals(kt-1,50),b=M.visuals(kt,50);assert.ok(b.rainDensity>a.rainDensity&&b.rainTrail<a.rainTrail&&b.dropDiameter<a.dropDiameter);
+ const a=M.visuals(kt-1,50),b=M.visuals(kt,50);assert.ok(b.rainDensity>a.rainDensity&&b.dropDiameter<a.dropDiameter);if(kt<=115)assert.ok(b.rainTrail<a.rainTrail);
  assert.ok(a.rainTrail/b.rainTrail<1.09,'no single-kt collapse of rain streaks');
 }
 assert.equal(M.visuals(135,50).mistMix,1);assert.ok(M.visuals(55,50).mistMix>0);
@@ -17,15 +17,17 @@ assert.ok(M.visuals(110,50).mistMix<.85,'visible rain remains well into the old 
 assert.ok(M.visuals(20,50).rainFall>base.fallSpeed*3.5,'visible weak-wind rain falls faster');
 assert.ok(M.visuals(135,50).rainDensity>=3.4&&M.visuals(135,50).dropDiameter<base.diameter*.18,'strong-wind rain is substantially denser and finer');
 assert.ok(M.visuals(20,50).rainTrail>.06,'longer ordinary rain streaks');
-near(M.visuals(170,50).rainTrail,M.visuals(135,50).rainTrail);assert.ok(M.visuals(170,50).rainTrail>=.003,'extreme-wind fine rain retains short visible tails');
+assert.ok(M.visuals(200,50).rainTrail>M.visuals(170,50).rainTrail&&M.visuals(170,50).rainTrail>M.visuals(135,50).rainTrail,'fine rain tails lengthen again at extreme winds');
+near(M.visuals(90,50).rainSpeed,1);near(M.visuals(200,50).rainSpeed,2);
+assert.ok(M.visuals(200,50).rainTrailMinLength>=.5*M.visuals(0,50).rainFall*M.visuals(0,50).rainTrail,'200 kt minimum exceeds half the calm reference');
 assert.ok(M.visuals(95,50).rainTrail/M.visuals(110,50).rainTrail<2.5,'95–110 kt remains a gradual mixture');
 // Weak wind leaves rain visibility unchanged; strong-wind growth softens after 165/180 kt.
 const mor=(r,kt=0)=>Math.log(20)/(Math.log(20)/11000+M.rainExtinction(r,0,0,kt));
 near(mor(75),350);for(const r of [70,80])assert.ok(mor(r)>300&&mor(r)<400);
-for(const kt of [20,65,90,100])near(mor(70,kt),mor(70,0));
-assert.ok(Math.abs(mor(70,170)-100)<1);assert.ok(mor(70,200)>74&&mor(70,200)<78);
+for(const kt of [20,65,90,100,120])near(mor(70,kt),mor(70,0));
+assert.ok(Math.abs(mor(65,170)-200)<1);assert.ok(Math.abs(mor(65,200)-150)<1);
 assert.ok(M.rainExtinction(70,0,0,160)-M.rainExtinction(70,0,0,150)>3*(M.rainExtinction(70,0,0,130)-M.rainExtinction(70,0,0,120)));
-for(const kt of [100,137,165,180]){
+for(const kt of [120,165,180]){
  const e=k=>M.rainExtinction(70,0,0,k),h=.0001;
  assert.ok(Math.abs(e(kt+h)-e(kt-h))<3e-7);
  assert.ok(Math.abs((e(kt+h)-e(kt))/h-(e(kt)-e(kt-h))/h)<2e-7,'smooth extinction slope at '+kt);
@@ -58,4 +60,4 @@ for(const intensity of [30,80,130,190]){
  const nearPeak=(v(cfg.rmw+5)-v(cfg.rmw+15))/10,tail=(v(180)-v(240))/60;
  assert.ok(nearPeak>tail);
 }
-console.log('PASS: conserved rain flux, gradual finer/denser rain, calm 75 mm/h -> 350 m and 170 kt/70 mm/h -> 100 m, cloud-edge rain onset and smooth radial wind.');
+console.log('PASS: conserved rain flux, gradual finer/denser rain, calm 75 mm/h -> 350 m and 65 mm/h -> 200/150 m at 170/200 kt, cloud-edge rain onset and smooth radial wind.');

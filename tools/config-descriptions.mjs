@@ -3,9 +3,10 @@ const meanings={KT:'节与米每秒的换算',RAD:'角度与弧度的换算',R:'
 const cssNames={'font-size':'文字字号','font-weight':'字重','line-height':'文字行距','letter-spacing':'字间距',padding:'内边距',margin:'外边距',gap:'控件间距',width:'宽度',height:'高度','min-width':'最小宽度','max-width':'最大宽度','min-height':'最小高度','max-height':'最大高度',opacity:'透明程度',border:'边框','border-radius':'圆角','border-color':'边框颜色','border-bottom':'底部分隔线','border-top':'顶部分隔线',background:'背景颜色或层次','box-shadow':'阴影范围或颜色',color:'文字或图形颜色',transition:'收起展开的过渡时间',animation:'动画时间与节奏',transform:'位移或旋转量',top:'距离上边缘的位置',bottom:'距离下边缘的位置',left:'距离左边缘的位置',right:'距离右边缘的位置','z-index':'覆盖层级','grid-template-columns':'横向栏宽比例','grid-template-rows':'纵向区域高度','aspect-ratio':'宽高比','flex-basis':'弹性布局基准宽度'};
 const formulas={'eye.development':'控制眼和眼墙随强度从无到有的发展程度（0–1）。','eye.rainClearing':'控制眼中心降雨随强度减弱的程度（0–1）。','wind.profile':'调整距中心不同距离的持续风分布。','weather.eyeSun':'计算观测点的风眼日照程度（0–1）。','weather.rain':'计算本地雨强（mm/h），影响雨丝和雨雾。','weather.visibility':'计算水平能见度（m），影响远景遮蔽和显示读数。','surge.level':'根据风速计算风暴潮目标上升高度（m）。','surge.responseSeconds':'计算水位接近目标的时间常数（模拟秒）。','eye.wallHeight':'计算眼墙云顶的高度（m）。','eye.cloudCoverage':'计算风眼内的低层与中层云覆盖程度（0–1）。','eye.angularSpeed':'计算云墙与眼内云随模拟时间转动的角速度（rad/s）。'};
 Object.assign(meanings,{coreExponent:'内核风速幂律指数',fastFraction:'外侧快速衰减分量占比',fastLength:'外侧快速衰减尺度（km）',slowLength:'外侧缓慢衰减尺度（km）',shoulder:'最大风速处平滑连接宽度（km）',tailTarget:'外围影响半径处参考风速比例',background:'极远处背景风速比例',diameter:'有效雨滴尺寸尺度（mm）',extinction:'雨滴光学消光系数（1/m）',concentration:'按降雨通量归一化的粒子谱浓度',numberDensity:'雨滴数浓度（个/m³）',liquidWater:'液态水含量（g/m³）',fallSpeed:'体积加权雨滴终速（m/s）',rainDensity:'渲染粒子数量倍率',rainTrail:'雨滴曝光拖尾时间（秒）',curtainFall:'白色雨幕下落速度（m/s）',curtainDrift:'白色雨幕随风移动比例',sharpEye:'成熟眼区降雨边界陡峭程度',rainStart:'眼区开始降雨的半径（km）',rainEnd:'内侧降雨达到眼墙量级的半径（km）'});
-Object.assign(formulas,{'rain.mistTransition':'雨丝变细变密的视觉过渡（0–1）；默认45 kt开始混入雨雾，135 kt完成，非实测普适阈值。','rain.effectiveDiameter':'通量守恒物理雨滴谱的尺寸尺度（mm）；默认只随雨量变化，与画面随风变细的粒子分开。','weather.rainExtinction':'有效雨雾消光（1/m）：100 kt以下不受风影响，137 kt后快速增强，165/180 kt后逐步放缓；本地170 kt、70 mm/h约100 m。'});
-Object.assign(meanings,{windU:'165 kt以内消光曲线采用的风速（kt）',rapidGain:'137 kt后消光增益的系数',windSlope:'165 kt处消光增强倍率对风速的斜率',windTail:'165/180 kt后逐步放缓的风速等效增量（kt）',windGain:'强风对雨雾消光的增强倍率',wavelength:'浓度波动的空间波长（m）',travel:'浓度条带的累计平移相位（rad）',pace:'相对雨滴波动的速度比例',cloudBase:'眼墙云底海拔（m）'});
+Object.assign(formulas,{'rain.mistTransition':'雨丝变细变密的视觉过渡（0–1）；默认45 kt开始混入雨雾，135 kt完成，非实测普适阈值。','rain.effectiveDiameter':'通量守恒物理雨滴谱的尺寸尺度（mm）；默认只随雨量变化，与画面随风变细的粒子分开。','weather.rainExtinction':'有效雨雾消光（1/m）：120 kt以下不受风影响，之后平滑增强，165/180 kt后逐步放缓；65 mm/h下170 kt约200 m、200 kt约150 m。'});
+Object.assign(meanings,{windU:'165 kt以内消光曲线采用的风速（kt）',windAmplitude:'120 kt后消光增益的系数',windPower:'120 kt后消光增长的幂指数',windSlope:'165 kt处消光增强倍率对风速的斜率',windTail:'165/180 kt后逐步放缓的风速等效增量（kt）',windGain:'强风对雨雾消光的增强倍率',wavelength:'浓度波动的空间波长（m）',travel:'浓度条带的累计平移相位（rad）',pace:'相对雨滴波动的速度比例',cloudBase:'眼墙云底海拔（m）'});
 Object.assign(meanings,{deckHeight:'连续云底基准海拔（m）',base:'当前计算的基准值',outside:'暴风圈外围高度过渡程度',wall:'眼墙较低云底的过渡程度',showers:'外围阵雨连续云盖覆盖程度',concentration:'沿视线的雨雾浓度倍率',beta:'降雨光学消光系数（1/m）'});
+Object.assign(meanings,{cloudWindFactor:'云底移速与当地持续风的倍率',deckShift:'云底纹理累计平移（m）',groundCount:'贴近地面的薄雾数量',thickness:'雾墙的横向厚度（m）',strength:'单面雾墙的浓度倍率'});
 meanings.rainFall='画面雨丝下落速度（m/s，含视觉倍率）';
 const short=text=>String(text).replace(/\s+/g,' ').slice(0,38);
 function role(e){
@@ -33,7 +34,8 @@ export function describeConfiguration(catalog){
   if(e.scope?.includes('coastTerraces')&&parts.at(-1)==='height')e.description='海岸平台的海拔高度（m），水位超过后开始淹入。';
   const alias=Object.entries(catalog.aliases).find(([,key])=>key===e.key)?.[0];
   const friendly={'eye.cloudRotationRatio':'眼内低中云与眼墙的角速度比例；1 表示同步旋转。','eye.cloudClearIntensity':'眼内低中云完全清空的台风强度（kt）。','weather.eyeRainStopsAt':'风眼中心降雨完成减弱、趋于雨停的强度（kt）。','weather.eyeSunStartsAt':'风眼日照开始出现的台风强度（kt）。','weather.eyeSunFullAt':'风眼日照达到完整晴空效果的台风强度（kt）。'};
-  if(alias)e.description=friendly[alias];
+  if(alias==='cloud.baseWindFactor')e.description='连续云底纹理随当地持续风移动的倍率；默认 1.3，依据 Franklin 等（2003）低层风廓线作近似。';
+  else if(alias)e.description=friendly[alias];
   if(/damageKinds.*threshold/.test(e.key))e.description='该类物体的风毁起算风速（kt）；超过后按受风时间累计损伤。';
  }
  for(const f of catalog.formulas)f.description=formulas[f.key]||'用这些输入变量计算本项结果；异常时回退内置公式。';

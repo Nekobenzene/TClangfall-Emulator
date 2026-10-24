@@ -103,19 +103,20 @@
   }
   function visuals(kt,rain){
     const severe=clamp((kt-35)/145,0,1.17),optics=rainOptics(kt,rain),mistMix=optics.mistMix,curtain=smooth(15,100,rain);
+    const rainSpeed=1+mistMix*smooth(90,200,kt);
     return {debrisCount:kt<95?0:Math.min(113,Math.round(280/3*Math.pow(severe,2.25))),debrisScale:.38+3.2*Math.pow(clamp((kt-45)/135,0,1.3),1.65),mistMix,
-      rainFall:optics.fallSpeed*(3.6-2.85*mistMix),rainDensity:1+2.4*Math.pow(mistMix,1.15),dropDiameter:optics.diameter*(1-.83*mistMix),
-      rainTrail:.003+.062*(1-mistMix),curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
+      rainSpeed,rainFall:optics.fallSpeed*(3.6-2.85*mistMix)*rainSpeed,rainDensity:1+2.4*Math.pow(mistMix,1.15),dropDiameter:optics.diameter*(1-.83*mistMix),
+      rainTrail:.003+.062*(1-mistMix)+.003*smooth(115,200,kt),rainTrailMinLength:.6*optics.fallSpeed*3.6*.065*smooth(135,200,kt),curtainFall:optics.fallSpeed*(.48-.20*mistMix),curtainDrift:.48+.45*mistMix,
       treeBend:.16*smooth(15,100,kt)+1.12*Math.pow(smooth(100,185,kt),.8),mistOpacity:clamp(.65*curtain+.65*mistMix*smooth(1,30,rain),0,1)};
   }
   function rainExtinction(rain,mist=0,dropExtinction=0,kt=0){
     // Scenario calibration: weak winds leave rain visibility unchanged; strong
     // winds add spray/haze. Logarithmic tails soften growth beyond 165/180 kt,
-    // matching both value and slope at each join; 170 kt / 70 mm/h -> ~100 m.
-    const windU=Math.min(kt,165),rapidGain=2.208;
-    const windSlope=.75*1.5/70*Math.sqrt(65/70)+rapidGain*2*28/(33*33);
+    // matching value and slope at each join; 65 mm/h -> 200/150 m at 170/200 kt.
+    const windU=Math.min(kt,165),windAmplitude=1.142314,windPower=4.599372;
+    const windSlope=windAmplitude*windPower/50*Math.pow(45/50,windPower-1);
     const windTail=12*Math.log1p(clamp(kt-165,0,15)/12)+(12/27)*6*Math.log1p(Math.max(0,kt-180)/6);
-    const windGain=1+.75*Math.pow(Math.max(0,(windU-100)/70),1.5)+rapidGain*Math.pow(Math.max(0,(windU-137)/33),2)+windSlope*windTail;
+    const windGain=1+windAmplitude*Math.pow(Math.max(0,(windU-120)/50),windPower)+windSlope*windTail;
     return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*windGain,{rain,mist,dropExtinction,kt,windGain});
   }
   function debrisMotion(kt,kind){
@@ -147,7 +148,12 @@
   function survivalTime(kind,kt,resistance=1){
     const cfg=damageKinds[kind];if(!cfg||kt<=cfg.threshold)return Infinity;
     const load=Math.pow(kt/cfg.threshold,2)-1;
-    return Math.max(cfg.minimum,cfg.budget/(load*load))*resistance;
+    // Add a cubic excess-wind rate instead of retaining a minutes-long floor.
+    // At threshold +20 kt even the strongest default prop (resistance 1.6)
+    // completes within 48 simulated seconds; the rate vanishes at threshold.
+    const baseRate=1/Math.max(cfg.minimum,cfg.budget/(load*load));
+    const excessRate=Math.pow((kt-cfg.threshold)/20,3)/30;
+    return resistance/(baseRate+excessRate);
   }
   function advanceDamage(damage,kind,kt,simDt,resistance=1){return clamp(damage+Math.max(0,simDt)/survivalTime(kind,kt,resistance),0,1);}
   function debrisSupply(ve,vn){const ms=Math.hypot(ve,vn);return .7*(1-.78*smooth(.05,.65,ms>0?-ve/ms:0));}

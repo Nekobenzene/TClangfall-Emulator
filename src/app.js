@@ -13,7 +13,7 @@
   let target = sampleField();
   const weather = { ...target };
   let flowAngle = Math.atan2(weather.vn, weather.ve);
-  let renderer,scene,camera,sky,sea,rain,rainPositions,rainGeo,rainMat,debris,debrisItems=[],trees=[],flag,mist,mistItems=[],sunDisk,sunGlow,cumulus,sunLight,ambientLight,foam,foamItems=[],impacts,impactItems=[],surgeLevel=0;
+  let renderer,scene,camera,sky,sea,rain,rainPositions,rainGeo,rainMat,debris,debrisItems=[],trees=[],flag,mist,sunDisk,sunGlow,cumulus,sunLight,ambientLight,foam,foamItems=[],impacts,impactItems=[],surgeLevel=0;
   let surgeRate=0,wideLens,mouseLookEnabled=false,hadPointerLock=false,hoverPointer=null,edgePan={x:0,y:0},lastShadowTime=-1,lastShadowX=Infinity,lastShadowZ=Infinity;
   const fullscreenActive=()=>document.fullscreenElement===view||view.classList.contains('is-fullscreen');
   let windScene,floodDebris,eyeWall,eyeClouds,rainFog,eyeViewState={visible:false},particleCamera=null,surgeMemory={level:0,crest:0,holdRadius:0};
@@ -116,7 +116,7 @@
     eyeClouds=createEyeClouds(T,rainFog.uniforms);sky=createStormSky(T,eyeClouds.uniforms);scene.add(sky);
     eyeWall=createEyeWall(T,scene,eyeClouds.uniforms);
     const mat = (color, extra = {}) => new T.MeshStandardMaterial({color,roughness:.88,flatShading:true,...extra});
-    const cube = new T.BoxGeometry(1,1,1), instanceGroups = new Map();
+    const cube = new T.BoxGeometry(1,1,1), instanceGroups = new Map(),mistBuildings=[];
     function batch(material,x,y,z,w,h,d,rotation=0) { if(!instanceGroups.has(material))instanceGroups.set(material,[]);instanceGroups.get(material).push([x,y,z,w,h,d,rotation]); }
     function box(material,x,y,z,w,h,d) { const mesh = new T.Mesh(cube,material);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);scene.add(mesh);return mesh; }
     const concrete = [mat('#959d98'),mat('#afb0a2'),mat('#9aa7a9'),mat('#b5b4a6'),mat('#849695')];
@@ -184,6 +184,7 @@
     function building(x,z,width,height,depth,index,detailed=true) {
       floodDebris.addObstacle(x,z,width,depth);
       const base=M.coastalHeight(x-width/2);
+      mistBuildings.push({minX:x-width/2-1,maxX:x+width/2+1,minZ:z-depth/2-2,maxZ:z+depth/2+2,minY:base-1,maxY:base+height+2.6});
       const raisedBox=(m,xx,y,zz,w,h,d)=>box(m,xx,y+base,zz,w,h,d);
       const raisedBatch=(m,xx,y,zz,w,h,d,rotation=0)=>batch(m,xx,y+base,zz,w,h,d,rotation);
       // A level foundation supports buildings spanning two terraces.
@@ -291,8 +292,8 @@
     const cloudCanvas=document.createElement('canvas');cloudCanvas.width=cloudCanvas.height=128;const cc=cloudCanvas.getContext('2d');
     const cg=cc.createRadialGradient(64,64,1,64,64,64);cg.addColorStop(0,'rgba(231,239,238,.6)');cg.addColorStop(.35,'rgba(216,232,232,.3)');cg.addColorStop(1,'rgba(213,232,232,0)');cc.fillStyle=cg;cc.fillRect(0,0,128,128);
     const cloudTexture=new T.CanvasTexture(cloudCanvas);
-    mist=new T.InstancedMesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:cloudTexture,color:'#c7d8d9',transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),150);mist.frustumCulled=false;mist.instanceMatrix.setUsage(T.DynamicDrawUsage);mist.userData.object=new T.Object3D();scene.add(mist);
-    for(let i=0;i<150;i++)mistItems.push({x:randomRange(-95,95),y:randomRange(1,57),z:randomRange(-110,85),size:randomRange(8,27),phase:random()*6});
+    mist=createMistCurtains(T,scene,random,mistBuildings,rainFog);
+    wideLens.setMist(mist,[sea]);
     sunDisk=new T.Mesh(new T.SphereGeometry(30,16,12),new T.MeshBasicMaterial({color:'#fff0bc',transparent:true,opacity:0,depthWrite:false,fog:false}));sunDisk.position.set(650,510,-1550);scene.add(sunDisk);
     sunGlow=new T.Sprite(new T.SpriteMaterial({map:cloudTexture,color:'#ffe8b0',transparent:true,opacity:0,depthWrite:false,fog:false,blending:T.AdditiveBlending}));sunGlow.position.copy(sunDisk.position);sunGlow.scale.set(320,320,1);scene.add(sunGlow);
     cumulus=new T.Group();scene.add(cumulus);const cm=new T.MeshLambertMaterial({color:'#f4f6ef',emissive:'#c5d3d6',emissiveIntensity:.6,transparent:true,opacity:0});
@@ -328,16 +329,19 @@
     // Rebase instant viewpoint changes; continuous flight retains world-space particles.
     if(Math.hypot(cameraDelta.x,cameraDelta.y,cameraDelta.z)>Math.max(50,state.flightSpeed*8*viewDt))cameraDelta={x:0,y:0,z:0};
     particleCamera={x:anchor.x,y:anchor.y,z:anchor.z};
-    const relativeRain=ObserverCamera.particleMotion({x:vx,y:-fall,z:vz},cameraDelta,weatherDt,viewDt),wrap=ObserverCamera.wrap;
-    rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);mist.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);
+    const rainVelocity={x:vx*visual.rainSpeed,y:-fall,z:vz*visual.rainSpeed};
+    const relativeRain=ObserverCamera.particleMotion(rainVelocity,cameraDelta,weatherDt,viewDt),wrap=ObserverCamera.wrap;
+    const trailTime=Math.max(visual.rainTrail,visual.rainTrailMinLength/Math.max(.1,Math.hypot(rainVelocity.x,rainVelocity.y,rainVelocity.z)));
+    rain.userData.motion={speedFactor:visual.rainSpeed,velocityWorld:rainVelocity,trailTime,minTrailLength:visual.rainTrailMinLength};
+    rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);
     const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*75000*visual.rainDensity));
-    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74);
+    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74)*.72;
     const p=rain.userData.points;
     for(let i=0;i<count;i++){
       const k=i*3,j=i*6;p[k]+=relativeRain.x;p[k+1]+=relativeRain.y;p[k+2]+=relativeRain.z;
       const near=i%3!==0,xmax=near?62:145,zmin=near?-15:-125,zmax=near?120:105,ymin=near?-8:-15;
       p[k]=wrap(p[k],-xmax,xmax);p[k+2]=wrap(p[k+2],zmin,zmax);p[k+1]=wrap(p[k+1],ymin,ymin+(near?75:130));
-      const trail=visual.rainTrail*(1+.65*Math.sin(i*7.9))*(1+.25*M.smooth(55,180,weather.rain));
+      const trail=trailTime*(1+.65*Math.sin(i*7.9))*(1+.25*M.smooth(55,180,weather.rain));
       rainPositions[j]=p[k];rainPositions[j+1]=p[k+1];rainPositions[j+2]=p[k+2];rainPositions[j+3]=p[k]-relativeRain.vx*trail;rainPositions[j+4]=p[k+1]-relativeRain.vy*trail;rainPositions[j+5]=p[k+2]-relativeRain.vz*trail;
     }rainGeo.attributes.position.needsUpdate=true;
     const debrisKt=kt,limit=Math.round(M.visuals(debrisKt,weather.rain).debrisCount*M.debrisSupply(weather.ve,weather.vn)),obj=debris.userData.object;let active=0;
@@ -351,7 +355,6 @@
       if(p.x>110)p.x-=220;if(p.x<-110)p.x+=220;if(p.z>95)p.z-=200;if(p.z<-105)p.z+=200;
       const scale=motion.size*(.8+p.size);obj.position.set(p.x,Math.max(.12,p.y),p.z);obj.rotation.set(t*motion.tumble+p.spin,t*motion.tumble*.7+p.spin,t*motion.tumble*1.2+p.spin);obj.scale.set(scale*(p.kind>.8?2.3:1.5),scale,1);obj.updateMatrix();debris.setMatrixAt(active++,obj.matrix);debris.userData.activeIndices.push(i);
     }debris.count=active;debris.instanceMatrix.needsUpdate=true;
-    const windE=ms>.01?weather.ve/ms:0,windZ=ms>.01?-weather.vn/ms:0;
     windScene.update(dt,weatherDt*state.timeScale,t);
     trees.forEach((tree,i)=>{
       if(tree.userData.failed)return;
@@ -366,18 +369,6 @@
     });
     flag.rotation.y=Math.atan2(weather.vn,weather.ve);const cloth=flag.userData.cloth,attr=cloth.geometry.attributes.position;
     for(let i=0;i<attr.count;i++){const x=attr.getX(i)+1.3;attr.setZ(i,Math.sin(t*7-x*3)*x*.055*clamp(ms/20,0,2));}attr.needsUpdate=true;flag.rotation.z=-Math.max(0,1-ms/15)*.75;
-    // Advected concentration curtains also occur in heavy rain with modest wind.
-    // Their slower pattern drift and sedimentation are distinct from single-drop motion.
-    mist.count=visual.mistOpacity>.005?150:0;
-    mist.material.opacity=visual.mistOpacity*.24;
-    const mo=mist.userData.object,cross=windE*Math.cos(state.yaw*RAD)-windZ*Math.sin(state.yaw*RAD);
-    const relativeMist=ObserverCamera.particleMotion({x:vx*visual.curtainDrift,y:-visual.curtainFall,z:vz*visual.curtainDrift},cameraDelta,weatherDt,viewDt);
-    const roll=Math.atan2(-visual.curtainFall,ms*visual.curtainDrift*cross||.001);
-    for(let i=0;i<mist.count;i++){
-      const p=mistItems[i];p.x=wrap(p.x+relativeMist.x,-105,105);p.z=wrap(p.z+relativeMist.z,-115,95);p.y=wrap(p.y+Math.sin(t+p.phase)*weatherDt*.6+relativeMist.y,1,57);
-      const wave=1+.6*(rainFog.fogDensityAt(p.x+mist.position.x,p.y+mist.position.y,p.z+mist.position.z)-1);
-      mo.position.set(p.x,p.y,p.z);mo.quaternion.copy(camera.quaternion);mo.rotateZ(roll);mo.scale.set(p.size*(1+visual.mistMix*1.4)*wave,(1.2+wave*3)*(.45+.55*visual.mistMix),1);mo.updateMatrix();mist.setMatrixAt(i,mo.matrix);
-    }mist.instanceMatrix.needsUpdate=true;
     const atmosphere=ViewAtmosphere.sample(weather,state.clearFog);
     scene.fog.density=atmosphere.fogDensity;
     const severity=clamp(weather.rain/100+ms/200,0,1),sun=atmosphere.sun;
@@ -386,7 +377,7 @@
     sky.material.uniforms.bottom.value.copy(scene.fog.color).lerp(new T.Color().setRGB(.68,.82,.94),atmosphere.blue);
     sky.material.uniforms.horizonHaze.value.copy(scene.fog.color);
     const eyeView=eyeWall.update(state,weather,observer(),scene.fog.color),solarCover=eyeView.sunBlocked?eyeView.formation:0;eyeViewState=eyeView;
-    const eyeEnvironment=eyeClouds.update(state,observer(),weather,scene.fog.color,eyeWall.group.rotation.y);
+    const eyeEnvironment=eyeClouds.update(state,observer(),weather,scene.fog.color,eyeWall.group.rotation.y,weatherDt);
     sky.material.uniforms.deck.value=eyeEnvironment.ceiling.coverage;sky.material.uniforms.deckHeight.value=eyeEnvironment.ceiling.base;sky.material.uniforms.cloudTime.value=state.simTime;
     sunLight.color.set(sun>.4?'#fff1d6':'#d2dfe5');sunLight.intensity=atmosphere.direct*(1-solarCover*.4);ambientLight.intensity=atmosphere.ambient;
     ambientLight.color.set(sun>.4?'#d9ebff':'#cedde6');ambientLight.groundColor.set(sun>.4?'#8b8770':'#626d6a');renderer.toneMappingExposure=atmosphere.exposure;
@@ -400,6 +391,7 @@
     // Only water elevation changes. The permanent terraces occlude water until overtopped.
     const previousWater=surgeLevel,hydroDt=weatherDt*state.timeScale;
     surgeLevel=M.advanceSurge(surgeMemory,{sustained:kt,intensity:state.intensity,radius:target.radius,simDt:hydroDt});
+    mist.update(weatherDt,t,weather,visual,camera,x=>Math.max(surgeLevel,M.coastalHeight(x)));
     surgeRate=hydroDt>0?(surgeLevel-previousWater)/hydroDt*3600:0;
     const shore=M.waterEdge(surgeLevel);sea.position.y=surgeLevel;sea.userData.waterLevel.value=surgeLevel;
     floodDebris.update(dt,t,surgeLevel,weather);
@@ -570,11 +562,12 @@
   // Read-only inspection hook for functional verification, no external services.
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
-  window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base});
+  window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base,motion:eyeClouds?.diagnostics(weather)});
+  window.TyphoonSimulator.mistDiagnostics=()=>mist?.diagnostics();
   window.TyphoonSimulator.rainDiagnostics=()=>{
     const count=rainGeo?.drawRange.count/2,patchSamples=[],points=rain?.userData.points;
     for(let i=0;i<Math.min(count||0,256);i++)patchSamples.push(rainFog.densityAt(rain.position.x+points[i*3],rain.position.y+points[i*3+1],rain.position.z+points[i*3+2]));
-    return{count,opacity:rainMat?.opacity,mistCount:mist?.count,mistOpacity:mist?.material.opacity,trailLength:rainPositions?Math.hypot(rainPositions[0]-rainPositions[3],rainPositions[1]-rainPositions[4],rainPositions[2]-rainPositions[5]):0,patchRange:patchSamples.length?[Math.min(...patchSamples),Math.max(...patchSamples)]:[0,0],field:rainFog?.diagnostics()};
+    return{count,opacity:rainMat?.opacity,mistCount:mist?.mesh.count,mistOpacity:mist?.diagnostics().opacity,motion:rain?.userData.motion,trailLength:rainPositions?Math.hypot(rainPositions[0]-rainPositions[3],rainPositions[1]-rainPositions[4],rainPositions[2]-rainPositions[5]):0,patchRange:patchSamples.length?[Math.min(...patchSamples),Math.max(...patchSamples)]:[0,0],field:rainFog?.diagnostics()};
   };
   window.TyphoonSimulator.debrisDiagnostics=()=>({count:debris?.count,items:(debris?.userData.activeIndices||[]).slice(0,12).map(index=>{
     const p=debrisItems[index],world=new THREE.Vector3(p.x+debris.position.x,Math.max(.12,p.y)+debris.position.y,p.z+debris.position.z),view=world.clone().applyMatrix4(camera.matrixWorldInverse);

@@ -2,7 +2,7 @@
  'use strict';
  const $=id=>document.getElementById(id),catalog=CONFIG_CATALOG,byKey=new Map(catalog.entries.map(e=>[e.key,e]));
  let draft={version:1,values:{},texts:{},formulas:{}},tab='common',page=0,saveHandle=null,messageTimer;
- const common=[['eye.cloudRotationRatio','眼内云 / 眼墙角速度比例','1 表示低、中层云与眼墙使用相同角速度。'],['eye.cloudClearIntensity','眼内云完全消散强度','kt；低层和中层云在此强度清空。'],['weather.eyeRainStopsAt','风眼中心雨停强度','kt；风眼中心降雨减弱完成的强度。'],['weather.eyeSunStartsAt','风眼阳光开始出现','kt。'],['weather.eyeSunFullAt','风眼阳光充分出现','kt。']];
+ const common=[['cloud.baseWindFactor','云底随风移动倍率','当地持续风的倍数；默认 1.3，依据低层风廓线作简化近似。'],['eye.cloudRotationRatio','眼内云 / 眼墙角速度比例','1 表示低、中层云与眼墙使用相同角速度。'],['eye.cloudClearIntensity','眼内云完全消散强度','kt；低层和中层云在此强度清空。'],['weather.eyeRainStopsAt','风眼中心雨停强度','kt；风眼中心降雨减弱完成的强度。'],['weather.eyeSunStartsAt','风眼阳光开始出现','kt。'],['weather.eyeSunFullAt','风眼阳光充分出现','kt。']];
  const descriptions={common:'优先调整这些常用参数。全部数值仍可在高级分类按源码上下文查找。',ui:'静态界面、动态读数、指南、标签和提示的文案。文字片段中的前后空格会影响动态拼接，请按需保留。',formulas:'支持 + - * / **、比较、条件运算、clamp、smooth 及常见 Math 函数。输入变量列在每项下方，可填写样例试算。',numbers:'JavaScript 中的数值与布尔常量，包括风雨、场景、相机、风毁、移动和采样参数。数组索引、循环次数等结构数值也在此；源码上下文可帮助区分用途。',css:'CSS 中的尺寸、间距、比例、动画、颜色分量和 HTML 控件边界。与物理阈值相关的控件范围和说明文案可分别调整。',shader:'GLSL 着色器的数值和完整文本；整数循环常量要求整数。完整文本被改写后，优先使用该文本，其内部的独立数值覆盖不再叠加。',strings:'包括单位、英文标签、格式字符串及内部选择器等其他字符串。修改内部选择器会改变控件绑定行为。'};
  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
  const section=e=>e.type==='string'?'texts':'values',value=e=>Object.hasOwn(draft[section(e)],e.key)?draft[section(e)][e.key]:e.default;

@@ -35,6 +35,13 @@ const EyeWall=(()=>{
     return{inEye,wallVisibility:inside,deck,lowClouds:eyeClouds,midClouds:Math.pow(eyeClouds,1.25)};
   }
   const angularSpeed=(intensity,rmw)=>configured('eye.angularSpeed',()=>intensity*(1852/3600)/Math.max(1000,rmw*1000),{intensity,rmw});
+  // Franklin et al. (2003): 10 m wind ~75% of the ~500 m maximum.
+  // A rounded proxy for low-cloud advection, not a universal cloud-motion fit.
+  function cloudMotion(weather){
+    const cloudWindFactor=1.3,speed=Math.max(0,weather.sustained??0)*(1852/3600)*cloudWindFactor;
+    const direction=Math.hypot(weather.ve??0,weather.vn??0);
+    return{factor:cloudWindFactor,speed:direction>0?speed:0,x:direction>0?weather.ve/direction*speed:0,z:direction>0?-weather.vn/direction*speed:0};
+  }
   function ceiling(state,weather,distance){
     const env=environment(state.intensity,state.eyeRadius,state.stormRadius,distance);
     const outside=state.intensity<34?1:smooth(state.stormRadius*.95,state.stormRadius*1.05,distance);
@@ -49,7 +56,7 @@ const EyeWall=(()=>{
     const beta=Math.max(0,Math.log(20)/Math.max(55,visibility)-Math.log(20)/11000);
     return Math.exp(-Math.max(0,distance)*(beta*concentration+1/80000));
   }
-  return{shape,section,intersects,smooth,environment,angularSpeed,ceiling,cloudTransmission};
+  return{shape,section,intersects,smooth,environment,angularSpeed,cloudMotion,ceiling,cloudTransmission};
 })();
 
 function createEyeWall(T,scene,eyeUniforms=createEyeCloudUniforms(T)){
@@ -150,7 +157,7 @@ const EYE_CLOUD_GLSL=`${typeof RainField!=='undefined'?RainField.glsl:''}
   float cloudTransmission(vec3 origin,vec3 ray,float distanceToCloud){
     float concentration=1.;
     #ifdef RAIN_CLOUD_FIELD
-    concentration=mix(1.,(rainFieldDensity(origin+ray*distanceToCloud*.18,rainFogPace)+rainFieldDensity(origin+ray*distanceToCloud*.50,rainFogPace)+rainFieldDensity(origin+ray*distanceToCloud*.82,rainFogPace))/3.,rainFogAmount);
+    concentration=mix(1.,(rainMistDensity(origin+ray*distanceToCloud*.18)+rainMistDensity(origin+ray*distanceToCloud*.50)+rainMistDensity(origin+ray*distanceToCloud*.82))/3.,rainFogAmount);
     #endif
     float beta=max(0.,2.99573227/max(55.,eyeVisibility)-2.99573227/11000.);
     return exp(-max(0.,distanceToCloud)*(beta*concentration+1./80000.));
@@ -184,11 +191,16 @@ const EYE_CLOUD_GLSL=`${typeof RainField!=='undefined'?RainField.glsl:''}
     return vec4(sum/max(.00001,1.-transmission),1.-transmission);
   }`;
 function createEyeCloudUniforms(T,rainUniforms={}){
-  return{...rainUniforms,eyeCenter:{value:new T.Vector3()},eyeSpan:{value:15000},eyeRotation:{value:new T.Vector4(1,0,0,1)},eyeLow:{value:0},eyeMid:{value:0},eyeSun:{value:0},eyeVisibility:{value:11000},eyeHaze:{value:new T.Color()}};
+  return{...rainUniforms,deckShift:{value:new T.Vector2()},eyeCenter:{value:new T.Vector3()},eyeSpan:{value:15000},eyeRotation:{value:new T.Vector4(1,0,0,1)},eyeLow:{value:0},eyeMid:{value:0},eyeSun:{value:0},eyeVisibility:{value:11000},eyeHaze:{value:new T.Color()}};
 }
 function createEyeClouds(T,rainUniforms={}){
   const uniforms=createEyeCloudUniforms(T,rainUniforms);
-  function update(state,observer,weather,haze,phase){
+  let lastSimTime=null;
+  function update(state,observer,weather,haze,phase,weatherDt=0){
+    const shift=uniforms.deckShift.value,motion=EyeWall.cloudMotion(weather);
+    if(lastSimTime!==null&&state.simTime<lastSimTime)shift.set(0,0);
+    else{shift.x+=motion.x*Math.max(0,weatherDt);shift.y+=motion.z*Math.max(0,weatherDt);}
+    lastSimTime=state.simTime;
     const distance=Math.hypot(state.east-observer.east,state.north-observer.north),env=EyeWall.environment(state.intensity,state.eyeRadius,state.stormRadius,distance);
     uniforms.eyeCenter.value.set(state.east*1000,0,55-state.north*1000);uniforms.eyeSpan.value=state.eyeRadius*1000;
     uniforms.eyeLow.value=env.lowClouds;uniforms.eyeMid.value=env.midClouds;
@@ -199,14 +211,14 @@ function createEyeClouds(T,rainUniforms={}){
     uniforms.eyeSun.value=weather.sunshine;uniforms.eyeVisibility.value=state.clearFog?22000:weather.visibility;uniforms.eyeHaze.value.copy(haze);
     return{...env,ceiling:EyeWall.ceiling(state,weather,distance)};
   }
-  return{uniforms,update};
+  return{uniforms,update,diagnostics:weather=>({...EyeWall.cloudMotion(weather),shift:{x:uniforms.deckShift.value.x,z:uniforms.deckShift.value.y}})};
 }
 // A continuous low ceiling, with no distant circular storm boundary drawn on the sky.
 function createStormSky(T,eyeUniforms=createEyeCloudUniforms(T)){
   return new T.Mesh(new T.SphereGeometry(4500,32,24),new T.ShaderMaterial({defines:eyeUniforms.rainFogAmount?{RAIN_CLOUD_FIELD:1}:{},side:T.BackSide,depthWrite:false,toneMapped:false,
     uniforms:{...eyeUniforms,top:{value:new T.Color('#45565e')},bottom:{value:new T.Color('#adb9bb')},horizonHaze:{value:new T.Color('#adb9bb')},clock:{value:0},veil:{value:0},deck:{value:0},deckHeight:{value:400},cloudTime:{value:0}},
     vertexShader:'varying vec3 pos;void main(){pos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec3 pos;uniform vec3 top;uniform vec3 bottom;uniform vec3 horizonHaze;uniform float clock;uniform float veil;uniform float deck;uniform float deckHeight;
+    fragmentShader:`varying vec3 pos;uniform vec3 top;uniform vec3 bottom;uniform vec3 horizonHaze;uniform float clock;uniform float veil;uniform float deck;uniform float deckHeight;uniform vec2 deckShift;
       ${CLOUD_BASE_GLSL}
       ${EYE_CLOUD_GLSL}
       void main(){vec3 p=normalize(pos);float h=max(0.,p.y);
@@ -221,7 +233,7 @@ function createStormSky(T,eyeUniforms=createEyeCloudUniforms(T)){
             distanceToDeck=(deckHeight+cloudBaseRipple(ground)-cameraPosition.y)/p.y;
           }
           if(distanceToDeck>0.){
-            vec2 uv=(cameraPosition.xz+p.xz*distanceToDeck)/1800.+vec2(cloudTime*.000012,cloudTime*.000006);
+            vec2 uv=(cameraPosition.xz+p.xz*distanceToDeck-deckShift)/1800.;
             uv+=vec2(noiseEye(uv*.68+8.2),noiseEye(uv*.68-3.7))*.8;
             float n=eyeField(uv);
             float light=clamp(.52+(eyeField(uv+vec2(.22,-.13))-n)*3.2,0.,1.);

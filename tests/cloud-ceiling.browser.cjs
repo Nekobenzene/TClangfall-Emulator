@@ -19,6 +19,8 @@ function cloudContrast(shot){
   StormModel.visuals=(...args)=>({...visuals(...args),rainDensity:0,mistOpacity:0,debrisCount:0});
  });
  await page.locator('#view').focus();for(let i=0;i<40;i++)await page.keyboard.press('ArrowUp');
+ // Freeze the material coordinates while comparing extinction at identical geometry.
+ await page.locator('#pauseButton').click();
  const contrasts=[];
  for(const [kt,rain,name]of [[20,0,'弱风无雨-云底纹理'],[170,0,'强风无雨-云底纹理'],[170,70,'强风降雨-云底消光']]){
   await page.evaluate(f=>Object.assign(cloudFixture,f),{kt,rain});await page.waitForFunction(({kt,rain})=>Math.abs(TyphoonSimulator.getWeather().sustained-kt)<.001&&Math.abs(TyphoonSimulator.getWeather().rain-rain)<.001,{kt,rain});
@@ -26,8 +28,17 @@ function cloudContrast(shot){
   contrasts.push(cloudContrast(await page.locator('#view').screenshot({path:path.join(root,'tmp',name+'.png')})));
  }
  assert.ok(contrasts[0]>2,'dry low cloud shows resolved texture');assert.ok(contrasts[1]>contrasts[0]*.7,'high wind does not erase dry cloud texture');assert.ok(contrasts[2]<contrasts[1]*.5,'rain extinction hides the texture naturally');
+ await page.locator('#pauseButton').click();
+ const motion=await page.evaluate(()=>({cloud:TyphoonSimulator.cloudDiagnostics().motion,clock:TyphoonSimulator.getState().time}));
+ await page.waitForFunction(t=>TyphoonSimulator.getState().time>t+.6,motion.clock);
+ const moving=await page.evaluate(()=>({cloud:TyphoonSimulator.cloudDiagnostics().motion,clock:TyphoonSimulator.getState().time}));
+ assert.ok(Math.abs((moving.cloud.shift.x-motion.cloud.shift.x)/(moving.clock-motion.clock)-170*1852/3600*1.3)<.01,'rendered cloud transport uses local sustained wind, not gust magnitude or storm strength');
+ await page.locator('#pauseButton').click();const frozen=await page.evaluate(()=>({shift:TyphoonSimulator.cloudDiagnostics().motion.shift,frame:TyphoonSimulator.diagnostics().renderedFrames}));
+ await page.waitForFunction(n=>TyphoonSimulator.diagnostics().renderedFrames>n+4,frozen.frame);assert.deepEqual(await page.evaluate(()=>TyphoonSimulator.cloudDiagnostics().motion.shift),frozen.shift);
  const recordedVisibility=await page.evaluate(()=>TyphoonSimulator.getWeather().visibility);
- await page.locator('#clearFogButton').click();await page.waitForFunction(()=>TyphoonSimulator.cloudDiagnostics().visibility===22000);const restored=cloudContrast(await page.locator('#view').screenshot({path:path.join(root,'tmp','去除雨雾-云底纹理恢复.png')}));assert.ok(restored>contrasts[1]*.7,'removing display fog restores the cloud detail');assert.ok(Math.abs(await page.evaluate(()=>TyphoonSimulator.getWeather().visibility)-recordedVisibility)<.1,'visibility reading is unchanged');
+ await page.locator('#clearFogButton').click();await page.waitForFunction(()=>TyphoonSimulator.cloudDiagnostics().visibility===22000);const restored=cloudContrast(await page.locator('#view').screenshot({path:path.join(root,'tmp','去除雨雾-云底纹理恢复.png')}));assert.ok(restored>2,'removing display fog resolves cloud texture');assert.ok(Math.abs(await page.evaluate(()=>TyphoonSimulator.getWeather().visibility)-recordedVisibility)<.1,'visibility reading is unchanged');
+ await page.evaluate(()=>cloudFixture.rain=0);await page.waitForFunction(()=>TyphoonSimulator.getWeather().rain<.001);const sameDry=cloudContrast(await page.locator('#view').screenshot());assert.ok(restored>sameDry*.7,'restored contrast matches the same dry material coordinates');
+ await page.evaluate(()=>cloudFixture.rain=70);await page.waitForFunction(()=>TyphoonSimulator.getWeather().rain>69.999);await page.locator('#pauseButton').click();
  await page.evaluate(()=>{const e=document.getElementById('north');e.value=-180;e.dispatchEvent(new Event('change',{bubbles:true}));});await page.waitForFunction(()=>TyphoonSimulator.cloudDiagnostics().base===650);assert.ok(await page.evaluate(()=>TyphoonSimulator.cloudDiagnostics().coverage>.9));
  await page.setViewportSize({width:844,height:390});await page.locator('#view').screenshot({path:path.join(root,'tmp','云底-手机横屏.png')});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  assert.deepEqual(errors,[]);console.log('PASS: dry cloud texture survives high wind, rain extinction suppresses contrast, real-height storm/peripheral cloud bases, fog removal and landscape.');console.log(JSON.stringify({contrasts}));

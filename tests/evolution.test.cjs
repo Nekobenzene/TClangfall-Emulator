@@ -20,6 +20,14 @@ for(const kind of Object.keys(M.damageKinds)){
   const threshold=M.damageKinds[kind].threshold;assert.equal(M.survivalTime(kind,threshold),Infinity);
   assert.ok(M.survivalTime(kind,200)<=M.survivalTime(kind,150));
   assert.equal(M.advanceDamage(0,kind,threshold,1e6),0);
+  const times=[1,5,10,15,20,30].map(excess=>M.survivalTime(kind,threshold+excess,1.6));
+  for(let i=1;i<times.length;i++)assert.ok(times[i]<times[i-1],'faster damage above threshold for '+kind);
+  assert.ok(times[4]<=60,'all default resistances fail within a minute at +20 kt: '+kind);
+  assert.ok(times[2]/times[4]>6,'damage accelerates sharply between +10 and +20 kt');
+  assert.equal(M.advanceDamage(0,kind,threshold+20,60,1.6),1);
+  assert.equal(M.advanceDamage(.25,kind,threshold+20,0,1.6),.25,'pause freezes damage');
+  let incremental=0;for(let i=0;i<60;i++)incremental=M.advanceDamage(incremental,kind,threshold+10,1,1.6);
+  assert.ok(Math.abs(incremental-M.advanceDamage(0,kind,threshold+10,60,1.6))<1e-12,'same simulated exposure at different time scales');
   const life=M.survivalTime(kind,170);let damage=M.advanceDamage(0,kind,170,life*.4);assert.ok(damage>.39&&damage<.41);
   damage=M.advanceDamage(damage,kind,170,life*.6);assert.equal(damage,1);
 }
