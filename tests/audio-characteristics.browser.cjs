@@ -32,7 +32,7 @@ async function render(page,cases,duration,name,seedInit=73519){
  return page.evaluate(async({cases,duration,legacy,seedInit})=>{
   const rate=24000,total=duration*cases.length,context=new OfflineAudioContext(6,Math.ceil(total*rate),rate);
   let seed=seedInit;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-  const weather=c=>({rain:c.ramp?c.rain*(context.currentTime%duration)/duration:c.rain,ms:c.kt*StormModel.KT,sustained:c.kt,gust:c.kt,ve:c.kt*StormModel.KT,vn:0});
+  const weather=c=>({rain:c.ramp?c.rain*(context.currentTime%duration)/duration:c.rain,ms:c.kt*StormModel.KT,sustained:c.sustained??c.kt,gust:c.kt,gustRiseRate:c.gustRiseRate??0,ve:c.kt*StormModel.KT,vn:0});
   let engine,nodes;
   if(legacy){
    const declarations=legacy.slice(legacy.indexOf('  let audioCtx,'),legacy.indexOf('  const view ='));
@@ -64,9 +64,13 @@ async function render(page,cases,duration,name,seedInit=73519){
    best.sort((a,b)=>b.energy-a.energy);
    for(const {offset}of best.slice(0,16)){const bins=spectrum(channels[1],offset);for(let i=1;i<bins.length;i++){const hz=i*rate/4096,band=hz<350?0:hz<1000?1:hz<3000?2:hz<6500?3:4;rainBands[band]+=bins[i];}}
    const sum=rainBands.reduce((a,b)=>a+b,0);for(let i=0;i<rainBands.length;i++)rainBands[i]/=Math.max(1e-30,sum);
-   let whistleOffset=start,whistleRms=0;
-   for(let offset=start;offset+4096<end;offset+=2048){const v=power(channels[3],offset,offset+4096).rms;if(v>whistleRms){whistleRms=v;whistleOffset=offset;}}
-   const tone=spectrum(channels[3],whistleOffset),mix=spectrum(channels[0],whistleOffset);let peakBin=Math.round(900*4096/rate);
+   let whistleOffset=start,whistleRms=0;const whistleWindows=[];
+   for(let offset=start;offset+4096<end;offset+=2048){const v=power(channels[3],offset,offset+4096).rms;whistleWindows.push({offset,energy:v});if(v>whistleRms){whistleRms=v;whistleOffset=offset;}}
+   // Average several strong windows so random wind in one FFT bin cannot mask a persistent tone.
+   whistleWindows.sort((a,b)=>b.energy-a.energy);
+   const tone=spectrum(channels[3],whistleOffset),mix=new Array(2048).fill(0);
+   for(const {offset}of whistleWindows.slice(0,8)){const bins=spectrum(channels[0],offset);for(let i=0;i<mix.length;i++)mix[i]+=bins[i];}
+   let peakBin=Math.round(900*4096/rate);
    let rumbleLow=0,rumbleTotal=0;
    for(const {offset}of best.slice(0,16)){const bins=spectrum(channels[4],offset);for(let i=1;i<bins.length;i++){const hz=i*rate/4096;rumbleTotal+=bins[i];if(hz>=28&&hz<=210)rumbleLow+=bins[i];}}
    for(let i=Math.round(700*4096/rate);i<Math.round(2300*4096/rate);i++)if(tone[i]>tone[peakBin])peakBin=i;
@@ -106,7 +110,12 @@ async function render(page,cases,duration,name,seedInit=73519){
  const randomWhistles=[];
  if(!baseline)for(const seed of [2,17,853])randomWhistles.push({seed,results:await render(page,[170,200,250].map(kt=>({kt,rain:65})),12,'random-whistles-'+seed,seed)});
  const variation=baseline?[]:await render(page,[{rain:65,kt:200,previewFull:true}],70,'whistle-variation');
- const report={baseline,rain,wind,wetWind,boundaries,ramp,onset,stress,randomWhistles,variation};fs.writeFileSync(path.join(folder,baseline?'before.json':'measurements.json'),JSON.stringify(report,null,2));
+ const crestReference=baseline?[]:await render(page,[{rain:65,kt:200}],12,'gust-reference',17);
+ const crest=baseline?[]:await render(page,[{rain:65,kt:200,sustained:160}],12,'gust-crest',17);
+ const crestStress=baseline?[]:await render(page,[{rain:200,kt:300,sustained:240,volume:100}],12,'gust-crest-maximum',17);
+ const crestRise=baseline?[]:await render(page,[{rain:65,kt:200,sustained:160,gustRiseRate:4.8}],12,'gust-rising',17);
+ const riseStress=baseline?[]:await render(page,[{rain:200,kt:300,sustained:240,gustRiseRate:7.2,volume:100}],12,'gust-rising-maximum',17);
+ const report={baseline,rain,wind,wetWind,boundaries,ramp,onset,stress,randomWhistles,variation,crestReference,crest,crestStress,crestRise,riseStress};fs.writeFileSync(path.join(folder,baseline?'before.json':'measurements.json'),JSON.stringify(report,null,2));
  console.log(JSON.stringify({rain:rain.map(r=>({mm:r.rain,db:r.rainDb,drops:r.dropCount})),wind:wind.map(r=>({kt:r.kt,db:r.mixDb,tone:r.whistleDb,prominence:r.whistleProminenceDb})),wetWind:wetWind.map(r=>({kt:r.kt,db:r.mixDb,peak:r.peak}))},null,2));
  if(!baseline){
   assert(rain[0].rainDb<-100,'no rain must be silent');
@@ -134,7 +143,12 @@ async function render(page,cases,duration,name,seedInit=73519){
   for(let i=4;i<wind.length;i++)assert(wind[i].rumbleDb>wind[i-1].rumbleDb,'rumble grows across the extreme-wind nodes');
   for(const r of wind.filter(r=>r.kt>=170))assert(r.rumbleLowFraction>.65,'rumble must actually concentrate energy in the low-frequency band');
   assert(wetWind[3].mixDb-wetWind[0].mixDb>3,'high wind boost must also survive with heavy rain');
-  assert([...rain,...wind,...wetWind,...boundaries,...ramp,...stress,...variation].every(r=>r.peak<=1),'output must not clip, including maximum volume');
+  assert(crest[0].whistleDb-crestReference[0].whistleDb>11.8,'a gust crest adds the further strengthened whistle to real PCM');
+  assert(crest[0].profile.speed>crestReference[0].profile.speed,'rain sound uses crest-accelerated world rain speed');
+  assert(crestRise[0].whistleDb>crest[0].whistleDb+3,'rising gust makes the rendered whistle louder at the same wind speed');
+  assert(Math.abs(crestRise[0].whistlePeakHz-crest[0].whistlePeakHz)<12,'at equal instantaneous wind, rising and steady gusts have the same rendered whistle pitch');
+  assert(wind[5].whistlePeakHz>wind[3].whistlePeakHz,'whistle pitch rises with instantaneous wind speed');
+  assert([...rain,...wind,...wetWind,...boundaries,...ramp,...stress,...variation,...crest,...crestStress,...crestRise,...riseStress].every(r=>r.peak<=1),'output must not clip, including maximum volume and rising gust boosts');
   console.log('PASS measured PCM: accepted 01 grains/spatial volume, onset/density/crossfade, wind growth, whistle swells/event contrast/breath and output peaks');
   writeReport(report);
  }

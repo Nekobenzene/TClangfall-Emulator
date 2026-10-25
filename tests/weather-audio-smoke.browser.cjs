@@ -8,7 +8,7 @@ const server=http.createServer((req,res)=>{const file=path.join(root,decodeURICo
 for(const file of ['台风模拟器.html','台风模拟器-可配置版.html']){
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port+'/'+encodeURIComponent(file));await page.waitForFunction(()=>window.TyphoonSimulator?.diagnostics().sceneReady);
- await page.evaluate(()=>{const sample=StormModel.sample;window.smokeWeather={rain:0,kt:0,cloudCover:0};StormModel.sample=(...args)=>{const w=sample(...args),f=smokeWeather;return{...w,rain:f.rain,cloudCover:f.cloudCover,sustained:f.kt,gust:f.kt,ms:f.kt*StormModel.KT,ve:f.kt*StormModel.KT,vn:0,sunshine:1-f.cloudCover};};});
+ await page.evaluate(()=>{const sample=StormModel.sample;window.smokeWeather={rain:0,kt:0,cloudCover:0};StormModel.sample=(...args)=>{const w=sample(...args),f=smokeWeather;return{...w,rain:f.rain,meanRain:f.rain,rainRatio:1,gustRatio:1,cloudCover:f.cloudCover,sustained:f.kt,gust:f.kt,ms:f.kt*StormModel.KT,ve:f.kt*StormModel.KT,vn:0,sunshine:1-f.cloudCover};};});
  await page.waitForTimeout(1700);await page.locator('#soundButton').click();assert.equal(await page.locator('#soundButton').getAttribute('aria-pressed'),'true');
  assert.equal(await page.evaluate(()=>TyphoonSimulator.audioDiagnostics().continuous),0);
  await page.evaluate(()=>Object.assign(smokeWeather,{rain:5,cloudCover:1}));await page.waitForTimeout(900);

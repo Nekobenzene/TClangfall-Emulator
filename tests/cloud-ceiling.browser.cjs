@@ -14,7 +14,7 @@ function cloudContrast(shot){
  await page.evaluate(()=>{
   for(const [id,value]of [['intensityNumber',180],['timeScale',1],['east',0],['north',-60]]){const e=document.getElementById(id);e.value=value;e.dispatchEvent(new Event('change',{bubbles:true}));}
   const original=StormModel.sample,visuals=StormModel.visuals;window.cloudFixture={kt:20,rain:0};
-  StormModel.sample=(...args)=>{const w=original(...args),f=window.cloudFixture;return{...w,sustained:f.kt,gust:f.kt,ms:f.kt*StormModel.KT,ve:f.kt*StormModel.KT,vn:0,rain:f.rain,sunshine:0,visibility:Math.log(20)/(Math.log(20)/11000+StormModel.rainExtinction(f.rain,0,0,f.kt))};};
+  StormModel.sample=(...args)=>{const w=original(...args),f=window.cloudFixture;return{...w,sustained:f.kt,gust:f.kt,gustRatio:1,ms:f.kt*StormModel.KT,ve:f.kt*StormModel.KT,vn:0,rain:f.rain,meanRain:f.rain,rainRatio:1,sunshine:0,visibility:Math.log(20)/(Math.log(20)/11000+StormModel.rainExtinction(f.rain,0,0,f.kt))};};
   // Isolate the rendered cloud contrast, without streaks or white foreground mist.
   StormModel.visuals=(...args)=>({...visuals(...args),rainDensity:0,mistOpacity:0,debrisCount:0});
  });

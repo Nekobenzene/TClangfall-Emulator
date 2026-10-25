@@ -31,9 +31,10 @@ async function verifyVolume(browser,errors){
  const page=await browser.newPage({viewport:{width:1366,height:768}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.TyphoonSimulator?.diagnostics().sceneReady);
  await page.evaluate(()=>{
-  const sample=StormModel.sample,visuals=StormModel.visuals;window.mistFixture={visible:true};
-  StormModel.sample=(...args)=>({...sample(...args),sustained:170,gust:170,ms:170*StormModel.KT,meanMs:170*StormModel.KT,ve:170*StormModel.KT,vn:0,rain:70,visibility:100,sunshine:0});
-  StormModel.visuals=(...args)=>({...visuals(...args),rainDensity:0,debrisCount:0,mistOpacity:mistFixture.visible?1:0});
+  const sample=StormModel.sample,visuals=StormModel.weatherVisuals,basicVisuals=StormModel.visuals;window.mistFixture={visible:true};
+  StormModel.sample=(...args)=>({...sample(...args),sustained:170,gust:170,gustRatio:1,ms:170*StormModel.KT,meanMs:170*StormModel.KT,ve:170*StormModel.KT,vn:0,rain:70,meanRain:70,rainRatio:1,visibility:100,sunshine:0});
+  StormModel.weatherVisuals=weather=>({...visuals({...weather,gustVisualRise:0}),rainDensity:0,debrisCount:0,mistOpacity:mistFixture.visible?1:0});
+  StormModel.visuals=(...args)=>({...basicVisuals(...args),rainDensity:0,debrisCount:0,mistOpacity:mistFixture.visible?1:0});
  });
  await page.waitForFunction(()=>Math.abs(TyphoonSimulator.getWeather().sustained-170)<.001);
  await page.waitForFunction(()=>TyphoonSimulator.mistDiagnostics().items.filter(p=>!p.ground).every(p=>Math.abs(p.angle)<.24));

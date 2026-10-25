@@ -77,7 +77,7 @@ const RainField=(()=>{
 })();
 function createRainFog(T){
   const uniforms={rainFogShift:{value:new T.Vector3()},rainFogAxis:{value:new T.Vector3()},rainFogPhase:{value:0},rainFogAmount:{value:0},rainPatchAmount:{value:0},rainFogWaveLength:{value:12},rainFogTravel:{value:0},rainFogMistTravel:{value:0},rainFogPace:{value:1/1.45}},installed=new WeakSet();
-  const wave={axis:uniforms.rainFogAxis.value,wavelength:12,travel:0};let frequency=1.45,fogFrequency=1,fogTravel=0,cadenceFactor=1;
+  const wave={axis:uniforms.rainFogAxis.value,wavelength:12,travel:0};let frequency=1.45,fogFrequency=1,fogTravel=0,cadenceFactor=1,gustFrequency=1,gustSpeed=1;
   let amount=0,frame=0,initialized=false;
   // Recover world position from the final model-view position, including instances/deformation.
   if(!T.ShaderChunk.fog_fragment.includes('rainFieldDensity')){
@@ -99,6 +99,7 @@ function createRainFog(T){
   }
   function update(dt,weather,visual,clearFog,scene){
     const step=Math.max(0,dt),shift=uniforms.rainFogShift.value;
+    gustFrequency=visual.gustFrequency??1;gustSpeed=visual.gustSpeed??1;
     const flow={x:weather.ve*visual.curtainDrift,y:-visual.curtainFall,z:-weather.vn*visual.curtainDrift},speed=Math.max(.001,Math.hypot(flow.x,flow.y,flow.z));
     shift.x+=flow.x*step;shift.z+=flow.z*step;shift.y+=flow.y*step;
     const blend=initialized?1-Math.exp(-step*3):1;
@@ -108,7 +109,8 @@ function createRainFog(T){
     const norm=Math.max(.001,Math.hypot(wave.axis.x,wave.axis.y,wave.axis.z));for(const axis of ['x','y','z'])wave.axis[axis]/=norm;
     if(step>0)cadenceFactor=RainField.variation(uniforms.rainFogPhase.value+step*.5,0,.30);
     // Keep spatial wavelength tied to the mean rate: varying it would jump phase.
-    wave.wavelength+=(Math.max(.5,speed/frequency)-wave.wavelength)*blend;wave.travel+=Math.PI*2*frequency*cadenceFactor*step;fogTravel+=Math.PI*2*fogFrequency*cadenceFactor*step;initialized=true;
+    wave.wavelength+=(Math.max(.5,speed/gustSpeed/frequency)-wave.wavelength)*blend;
+    wave.travel+=Math.PI*2*frequency*cadenceFactor*gustFrequency*step;fogTravel+=Math.PI*2*fogFrequency*cadenceFactor*gustFrequency*step;initialized=true;
     uniforms.rainFogWaveLength.value=wave.wavelength;uniforms.rainFogTravel.value=wave.travel;
     uniforms.rainFogMistTravel.value=fogTravel;uniforms.rainFogPace.value=fogFrequency/frequency;
     uniforms.rainFogPhase.value+=step;
@@ -118,7 +120,7 @@ function createRainFog(T){
   }
   const densityAt=(x,y,z,pace=1)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value,wave,pace)-1)*amount;
   const fogDensityAt=(x,y,z)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value,{...wave,travel:fogTravel},uniforms.rainFogPace.value)-1)*amount;
-  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,frequency,fogFrequency,cadenceFactor,instantFogFrequency:fogFrequency*cadenceFactor,instantRainFrequency:frequency*cadenceFactor,wavelength:wave.wavelength,travel:wave.travel,fogTravel,samples:[fogDensityAt(-100,20,-60),fogDensityAt(0,20,-60),fogDensityAt(100,20,-60)]});
+  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,frequency,fogFrequency,cadenceFactor,gustFrequency,gustSpeed,instantFogFrequency:fogFrequency*cadenceFactor*gustFrequency,instantRainFrequency:frequency*cadenceFactor*gustFrequency,wavelength:wave.wavelength,travel:wave.travel,fogTravel,samples:[fogDensityAt(-100,20,-60),fogDensityAt(0,20,-60),fogDensityAt(100,20,-60)]});
   return{install,update,densityAt,fogDensityAt,diagnostics,uniforms};
 }
 ViewAtmosphere.RainField=RainField;ViewAtmosphere.createRainFog=createRainFog;
@@ -224,7 +226,7 @@ function createMistCurtains(T,scene,random=Math.random,buildings=[],rainField=nu
   let initialized=false;
   function update(dt,clock,weather,visual,camera,surfaceHeight){
     const step=Math.max(0,dt),angle=Math.atan2(weather.vn,weather.ve),blend=1-Math.exp(-step*1.8);
-    uniforms.mistClock.value=clock;uniforms.mistOpacity.value=visual.mistOpacity*.16;
+    uniforms.mistClock.value=clock;uniforms.mistOpacity.value=visual.mistOpacity*.16*(1+.35*(visual.gustPileup??0)+.8*(visual.gustBurst??0));
     mesh.count=visual.mistOpacity>.005?total:0;
     const wrap=(x,a,b)=>a+((x-a)%(b-a)+(b-a))%(b-a);
     for(let i=0;i<total;i++){

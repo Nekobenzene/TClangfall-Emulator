@@ -269,6 +269,102 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       heading:((Number(options.heading)||0)%360+360)%360,motionSpeed:clamp(Number(options.motionSpeed)||0,0,60)};
   }
   function hash(n){const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+  // Direct continuous-time random flight in log space. A monotone cubic CDF
+  // supplies a continuous density with the specified central masses and tails.
+  // Random reversals integrate -d(log density); no threshold is a fixed turning
+  // point, and no temporal waveform or selected peak is interpolated/reshaped.
+  function logFlight(widths,seed){
+    let word=seed>>>0;
+    const random=()=>{word=(word+0x6D2B79F5)>>>0;let n=word;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return((n^(n>>>14))>>>0)/4294967296;};
+    const exponential=()=>-Math.log1p(-random());
+    const knots=[0,...widths.map(Math.log1p)],mass=[.025,.225,.225],c=knots[3];
+    const spans=mass.map((p,i)=>knots[i+1]-knots[i]),secants=mass.map((p,i)=>p/spans[i]);
+    const density=[];
+    density[0]=Math.max(0,((2*spans[0]+spans[1])*secants[0]-spans[0]*secants[1])/(spans[0]+spans[1]));
+    for(let i=1;i<3;i++){
+      const w1=2*spans[i]+spans[i-1],w2=spans[i]+2*spans[i-1];
+      density[i]=(w1+w2)/(w1/secants[i-1]+w2/secants[i]);
+    }
+    density[3]=Math.max(0,((2*spans[2]+spans[1])*secants[2]-spans[2]*secants[1])/(spans[2]+spans[1]));
+    const tail=.025/density[3],pieces=mass.map((p,i)=>({
+      a:density[i],b:6*secants[i]-4*density[i]-2*density[i+1],d:3*density[i]+3*density[i+1]-6*secants[i]
+    }));
+    const cdf=(i,t)=>spans[i]*(pieces[i].a*t+pieces[i].b*t*t/2+pieces[i].d*t*t*t/3);
+    const logDensity=x=>{
+      const r=Math.abs(x);if(r>=c)return Math.log(density[3])-(r-c)/tail;
+      const i=r<knots[1]?0:r<knots[2]?1:2,t=(r-knots[i])/spans[i],p=pieces[i];
+      return Math.log(p.a+t*(p.b+p.d*t));
+    };
+    // Split only at density extrema so each integrated hazard is monotone.
+    const positive=knots.slice(1);
+    for(let i=0;i<3;i++){const p=pieces[i],t=-p.b/(2*p.d);if(t>0&&t<1)positive.push(knots[i]+spans[i]*t);}
+    positive.sort((a,b)=>a-b);
+    const edges=[-Infinity,...positive.slice().reverse().map(x=>-x),0,...positive,Infinity];
+    const speed=()=>c/3*(.55+.9*random())*(random()<.5?-1:1);
+    const u=random()/2;let magnitude;
+    if(u>=.475)magnitude=c+tail*exponential();
+    else{
+      const i=u<.025?0:u<.25?1:2,target=u-[0,.025,.25][i];let low=0,high=1;
+      for(let j=0;j<44;j++){const mid=(low+high)/2;if(cdf(i,mid)<target)low=mid;else high=mid;}
+      magnitude=knots[i]+spans[i]*(low+high)/2;
+    }
+    let x=magnitude*(random()<.5?-1:1),band=edges.findIndex(edge=>edge>x)-1;
+    let velocity=speed(),refresh=2.5*exponential(),hazard=exponential();
+    function advance(dt){
+      let remaining=Math.max(0,dt);
+      while(remaining>0){
+        const direction=velocity>0?1:-1,boundary=edges[band+(direction>0?1:0)];
+        const crossing=Math.max(0,(boundary-x)/velocity);
+        const limit=Math.min(remaining,crossing,refresh),end=limit===crossing?boundary:x+velocity*limit;
+        const startDensity=logDensity(x),consumed=Math.max(0,startDensity-logDensity(end));
+        if(consumed>=hazard){
+          const target=startDensity-hazard;let low=0,high=1;
+          for(let j=0;j<44;j++){const mid=(low+high)/2;if(logDensity(x+(end-x)*mid)>target)low=mid;else high=mid;}
+          const fraction=(low+high)/2,step=limit*fraction;
+          x+=(end-x)*fraction;remaining-=step;refresh-=step;velocity=-velocity;hazard=exponential();
+        }else{
+          x=end;remaining-=limit;hazard-=consumed;
+          const refreshed=limit===refresh;refresh-=limit;
+          if(limit===crossing)band+=direction;
+          if(refreshed){velocity=speed();refresh=2.5*exponential();}
+        }
+      }
+      return Math.exp(x);
+    }
+    return{advance,value:()=>Math.exp(x)};
+  }
+  function createVariability(seed=Date.now()){
+    const initialSeed=Number(seed)>>>0;
+    const wind=logFlight([.02,.10,.25],initialSeed^0x9E3779B9);
+    const stormWind=logFlight([.03,.12,.25],initialSeed^0x27D4EB2F);
+    const storm=logFlight([.02,.08,.15],initialSeed^0x85EBCA6B);
+    const wall=logFlight([.01,.04,.08],initialSeed^0xC2B2AE35);
+    let seconds=0;
+    const snapshot=()=>({seed:initialSeed,seconds,gust:wind.value(),stormGust:stormWind.value(),stormRain:storm.value(),wallRain:wall.value()});
+    return{snapshot,advance(dt){const step=Math.max(0,dt);seconds+=step;wind.advance(step);stormWind.advance(step);storm.advance(step);wall.advance(step);return snapshot();}};
+  }
+  // A sharp, continuous crest response acts on rendering and sound only.
+  function gustResponse(weather){
+    const ratio=weather.sustained>0?weather.gust/weather.sustained:1;
+    const charge=smooth(1.08,1.25,ratio),gate=smooth(80,120,weather.sustained);
+    const crest=gate*Math.pow(charge,3),pileup=gate*charge*(1-charge)*4;
+    // Positive kt per real second only; falling gusts have no rise contribution.
+    const rise=gate*-Math.expm1(-Math.max(0,weather.gustRiseRate??0)/Math.max(1,weather.sustained)/.012);
+    const burst=1-(1-crest)*(1-rise);
+    return{ratio,crest,rise,burst,pileup,frequency:1+burst,speed:1+.3*burst};
+  }
+  function weatherVisuals(weather){
+    const visual=visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain),gust=gustResponse(weather);
+    const rise=weather.gustVisualRise??gust.rise,burst=1-(1-gust.crest)*(1-rise),speed=1+.3*burst;
+    return{...visual,rainSpeed:visual.rainSpeed*speed,rainFall:visual.rainFall*speed,rainDensity:visual.rainDensity*(1+.25*burst),rainOpacity:1+.35*burst,
+      curtainDrift:visual.curtainDrift*speed,curtainFall:visual.curtainFall*speed,
+      gustFrequency:1+burst,gustSpeed:speed,gustBurst:burst,gustPileup:gust.pileup};
+  }
+  // Smooth the display response only; the random wind and raw rise factor stay intact.
+  function advanceGustVisualRise(previous,weather,dt){
+    const value=clamp(previous??0,0,1),goal=gustResponse(weather).rise;
+    return value+(goal-value)*-Math.expm1(-Math.max(0,dt)/(goal>value?.25:.55));
+  }
   // Nested event chance and duration: more frequent inward without increasing pulse amplitude.
   function cell(t,period,seed,inward=1,occurrence=1){
     const index=Math.floor(t/period),f=t-index*period;
@@ -278,6 +374,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     return smooth(start,start+.18,f)*(1-smooth(start+duration,start+duration+.45,f))*(.55+.45*hash(index+seed+61));
   }
   function squall(t,seed=0,inward=1,occurrence=1){return Math.max(cell(t,6.7,seed+13,inward,occurrence),cell(t+2.2,11.3,seed+81,inward,occurrence));}
+  function stormBackground(cfg,radius,intensity){
+    return cfg.hasStorm?smooth(34,67,intensity)*smooth(cfg.rmw,Math.max(cfg.rmw+8,cfg.windWallRadius),radius)*(1-smooth(cfg.wallRadius,cfg.stormRadius,radius)):0;
+  }
   function meanWind(east,north,intensity=110,options=28,time=0){
     intensity=strength(intensity);
     const cfg=options.preparedIntensity===intensity?options:structure(options,intensity);
@@ -298,12 +397,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     // Smooth low-order asymmetry only. The peak is preserved and strong cores become rounder.
     const a=Math.atan2(north,east),asym=.04*(1-.94*smooth(67,185,intensity));
     profile+=asym*profile*(1-profile)*(.7*Math.sin(a+.4+time*.002)+.3*Math.sin(2*a-.8));
+    const backgroundWeight=stormBackground(cfg,radius,intensity);
+    profile*=1+.06*backgroundWeight*(1-profile);
     profile=configured('wind.profile',()=>profile,{profile,radius,intensity,rmw,eyeRadius,stormRadius,influenceRadius,eyeDevelopment,time});
     let ve=0,vn=0;
     if(radius>1e-8){const inflow=15*RAD;ve=(north*Math.cos(inflow)+east*Math.sin(inflow))/radius*intensity*profile;vn=(-east*Math.cos(inflow)+north*Math.sin(inflow))/radius*intensity*profile;}
     const translation=.65*motionSpeed*profile;ve+=Math.sin(heading*RAD)*translation;vn+=Math.cos(heading*RAD)*translation;
     const sustained=Math.hypot(ve,vn),right=(-east)*Math.cos(heading*RAD)-(-north)*Math.sin(heading*RAD);
-    return {...cfg,radius,q,profile,sustained,meanMs:sustained*KT,ve,vn,
+    return {...cfg,radius,q,profile,backgroundWeight,sustained,meanMs:sustained*KT,ve,vn,
       semicircle:motionSpeed<.05||radius<.1?'none':right>=0?'danger':'safe',
       region:radius>=influenceRadius?'clear':hasEye&&eyeDevelopment>0&&radius<eyeRadius?'eye':hasEye&&eyeDevelopment>0&&radius<=cfg.wallRadius?'wall':hasStorm&&radius<=stormRadius?'storm':!hasStorm&&radius<=bandRadius?'core':'outer'};
   }
@@ -334,13 +435,18 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   function rainExtinction(rain,mist=0,dropExtinction=0,kt=0){
     // Scenario calibration: weak winds leave rain visibility unchanged; strong
-    // winds add spray/haze. Logarithmic tails soften growth beyond 165/180 kt,
-    // matching value and slope at each join; 65 mm/h -> 200/150 m at 170/200 kt.
-    const windU=Math.min(kt,165),windAmplitude=1.142314,windPower=4.599372;
-    const windSlope=windAmplitude*windPower/50*Math.pow(45/50,windPower-1);
-    const windTail=12*Math.log1p(clamp(kt-165,0,15)/12)+(12/27)*6*Math.log1p(Math.max(0,kt-180)/6);
+    // winds add spray/haze. A logarithmic tail softens growth above 155 kt,
+    // preserving value/slope at the join; 65 mm/h -> about 250 m at 200 kt.
+    const windU=Math.min(kt,155),windAmplitude=1.142314,windPower=4.599372;
+    const windSlope=windAmplitude*windPower/50*Math.pow(35/50,windPower-1);
+    const windTail=6*Math.log1p(Math.max(0,kt-155)/6);
     const windGain=1+windAmplitude*Math.pow(Math.max(0,(windU-120)/50),windPower)+windSlope*windTail;
     return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*windGain,{rain,mist,dropExtinction,kt,windGain});
+  }
+  function visibility(weather){
+    const {rain,gust,intensity,sustained,radius}=weather,ms=gust*KT,optics=rainOptics(gust,rain),mist=optics.mistMix;
+    const extinction=rainExtinction(rain,mist,optics.extinction,gust);
+    return configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
   }
   function debrisMotion(kt,kind){
     const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?155:medium?137:95,lift=smooth(threshold,heavy?210:medium?190:160,kt);
@@ -386,16 +492,19 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     const afloat=depth>draft,shallow=smooth(draft,draft+.3,depth);
     return{afloat,draft,speed:afloat?Math.max(0,kt)*KT*(.018+.047/(1+bulk*2.8))*(.25+.75*shallow):0,response:1.2+bulk*5};
   }
-  function sample(east,north,intensity=110,options=28,time=0){
+  function sample(east,north,intensity=110,options=28,time=0,fluctuations=null){
     intensity=strength(intensity);
     const field=meanWind(east,north,intensity,options,time);
     const {eyeRadius,wallRadius,influenceRadius,bandRadius,radius,hasEye,eyeDevelopment,eyeClearing,sustained}=field;
-    const outerMix=smooth(bandRadius,influenceRadius,radius),inward=1-outerMix,outside=smooth(influenceRadius,influenceRadius+30,radius);
+    const outerMix=smooth(bandRadius,influenceRadius,radius),inward=1-outerMix;
     const rainEdge=1-smooth(influenceRadius*.94,influenceRadius,radius);
     const rainOccurrence=smooth(0,.18,inward);
     const pulse=squall(time,5,inward),rainPulse=clamp(.72*squall(time-.65,5,inward,rainOccurrence)+.38*squall(time+1.4,47,inward,rainOccurrence),0,1);
-    const gustFactor=(1.10+.035*Math.sin(time*1.37)+.10*pulse)*(1-outerMix)+(.72+1.75*pulse)*outerMix*(1-outside)+(.85+.65*pulse)*outside;
-    const gust=sustained*gustFactor,angle=(hash(Math.floor((time+1.1)/6.7)+39)-.5)*1.9*pulse*outerMix+.12*Math.sin(time*2.4)*outerMix;
+    const wallWeight=eyeDevelopment*(1-smooth(eyeRadius+(wallRadius-eyeRadius)*.84,wallRadius,radius));
+    const coreWeight=1-smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius);
+    const stormWeight=field.hasStorm?coreWeight*(1-wallWeight)*smooth(34,67,intensity):0;
+    const gustFactor=Math.exp((1-stormWeight)*Math.log(fluctuations?.gust??1)+stormWeight*Math.log(fluctuations?.stormGust??fluctuations?.gust??1));
+    const gust=sustained*gustFactor,angle=Math.log(gustFactor)*.8*outerMix;
     const cv=Math.cos(angle),sv=Math.sin(angle),ve=(field.ve*cv-field.vn*sv)*gustFactor*KT,vn=(field.ve*sv+field.vn*cv)*gustFactor*KT;
     const rainFactor=field.rainStrength/100,scale=rainFactor;
     const outerScale=(.9+.1*smooth(20,140,intensity))*(.85+.15*rainFactor);
@@ -404,28 +513,31 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       // Nearly level storm-circle rain; a narrow outer eyewall ramp leads to an inner plateau.
       // Without an eye, use a stronger, broad inward rain gradient instead.
       const broadRain=26+34*(1-smooth(0,bandRadius,radius));
-      const stormRain=26+3*(1-smooth(wallRadius,bandRadius,radius));
-      const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.72,wallRadius,radius);
-      const developedRain=stormRain+43*wallRamp;
+      const stormRain=26+6*eyeDevelopment+2*(1-smooth(wallRadius,bandRadius,radius));
+      const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.84,wallRadius,radius);
+      const developedRain=stormRain+(72-stormRain)*wallRamp;
       // Rain begins as the feathered inner cloud-wall footprint passes overhead.
       // Weak/developing eyes retain a wider, wetter inner transition.
       const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.735*sharpEye);
       const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.171*sharpEye),.12,3);
       const eyeDrying=eyeClearing*(1-smooth(rainStart,rainEnd,radius));
       rain=(broadRain+(developedRain-broadRain)*eyeDevelopment)*(1-eyeDrying)*scale;
-      rain*=1+.035*Math.sin(time*.9)*smooth(0,bandRadius,radius);
     }
     else{
       const mix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius);
       const rare=hash(Math.floor(time/18.7)+307)<.045+.09*inward?1:0;
       const shower=(75*Math.pow(rainPulse,1.25)+190*rare*Math.pow(rainPulse,2.4))*smooth(.02,.08,rainPulse);
-      rain=((1-mix)*26*scale*(1+.035*Math.sin(time*.9))+mix*shower*outerScale)*rainEdge;
+      rain=((1-mix)*(26+6*eyeDevelopment*eyeDevelopment)*scale+mix*shower*outerScale)*rainEdge;
     }
+    rain+=3*field.backgroundWeight*(1-wallWeight)*scale;
     const eyeSun=configured('weather.eyeSun',()=>hasEye?smooth(145,180,intensity)*(1-smooth(eyeRadius*.35,eyeRadius*.88,radius)):0,{hasEye,intensity,eyeRadius,radius});
     const breakMix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius),dryBreak=(1-smooth(.02,.18,rainPulse))*breakMix;
     let sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain*.90,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
+    const meanRain=rain;
+    const rainRatio=Math.exp(coreWeight*((1-wallWeight)*Math.log(fluctuations?.stormRain??1)+wallWeight*Math.log(fluctuations?.wallRain??1)));
+    rain*=rainRatio;
     // Cloud events are broader and more frequent than rain, with an advance cloud shoulder.
     const futurePulse=offset=>clamp(.72*squall(time+offset-.65,5,inward,rainOccurrence)+.38*squall(time+offset+1.4,47,inward,rainOccurrence),0,1);
     const advanceCloud=smooth(0,.015,Math.max(rainPulse,futurePulse(.35),futurePulse(.7)));
@@ -435,12 +547,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     const cloudCore=1-smooth(bandRadius+(influenceRadius-bandRadius)*.38,bandRadius+(influenceRadius-bandRadius)*.62,radius);
     const cloudCover=rain>0?1:clamp(Math.max(cloudCore*eyeCloud,advanceCloud*cloudEdge*breakMix,dryCloud*cloudEdge*breakMix),0,1);
     sunshine=Math.min(sunshine,1-cloudCover);
-    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction,sustained);
+    const ms=Math.hypot(ve,vn),viewVisibility=visibility({rain,gust,intensity,sustained,radius});
     // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
-    const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
-    return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,cloudCover,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
+    return {...field,ms,ve,vn,gust,gustRatio:gustFactor,rain,meanRain,rainRatio,wallWeight,stormWeight,visibility:viewVisibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,cloudCover,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
-  const api={sample,meanWind,structure,visuals,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
+  const api={sample,meanWind,structure,visuals,weatherVisuals,gustResponse,advanceGustVisualRise,createVariability,visibility,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.StormModel=api;
 })(typeof window!=='undefined'?window:globalThis);
@@ -728,7 +839,7 @@ const RainField=(()=>{
 })();
 function createRainFog(T){
   const uniforms={rainFogShift:{value:new T.Vector3()},rainFogAxis:{value:new T.Vector3()},rainFogPhase:{value:0},rainFogAmount:{value:0},rainPatchAmount:{value:0},rainFogWaveLength:{value:12},rainFogTravel:{value:0},rainFogMistTravel:{value:0},rainFogPace:{value:1/1.45}},installed=new WeakSet();
-  const wave={axis:uniforms.rainFogAxis.value,wavelength:12,travel:0};let frequency=1.45,fogFrequency=1,fogTravel=0,cadenceFactor=1;
+  const wave={axis:uniforms.rainFogAxis.value,wavelength:12,travel:0};let frequency=1.45,fogFrequency=1,fogTravel=0,cadenceFactor=1,gustFrequency=1,gustSpeed=1;
   let amount=0,frame=0,initialized=false;
   // Recover world position from the final model-view position, including instances/deformation.
   if(!T.ShaderChunk.fog_fragment.includes('rainFieldDensity')){
@@ -750,6 +861,7 @@ function createRainFog(T){
   }
   function update(dt,weather,visual,clearFog,scene){
     const step=Math.max(0,dt),shift=uniforms.rainFogShift.value;
+    gustFrequency=visual.gustFrequency??1;gustSpeed=visual.gustSpeed??1;
     const flow={x:weather.ve*visual.curtainDrift,y:-visual.curtainFall,z:-weather.vn*visual.curtainDrift},speed=Math.max(.001,Math.hypot(flow.x,flow.y,flow.z));
     shift.x+=flow.x*step;shift.z+=flow.z*step;shift.y+=flow.y*step;
     const blend=initialized?1-Math.exp(-step*3):1;
@@ -759,7 +871,8 @@ function createRainFog(T){
     const norm=Math.max(.001,Math.hypot(wave.axis.x,wave.axis.y,wave.axis.z));for(const axis of ['x','y','z'])wave.axis[axis]/=norm;
     if(step>0)cadenceFactor=RainField.variation(uniforms.rainFogPhase.value+step*.5,0,.30);
     // Keep spatial wavelength tied to the mean rate: varying it would jump phase.
-    wave.wavelength+=(Math.max(.5,speed/frequency)-wave.wavelength)*blend;wave.travel+=Math.PI*2*frequency*cadenceFactor*step;fogTravel+=Math.PI*2*fogFrequency*cadenceFactor*step;initialized=true;
+    wave.wavelength+=(Math.max(.5,speed/gustSpeed/frequency)-wave.wavelength)*blend;
+    wave.travel+=Math.PI*2*frequency*cadenceFactor*gustFrequency*step;fogTravel+=Math.PI*2*fogFrequency*cadenceFactor*gustFrequency*step;initialized=true;
     uniforms.rainFogWaveLength.value=wave.wavelength;uniforms.rainFogTravel.value=wave.travel;
     uniforms.rainFogMistTravel.value=fogTravel;uniforms.rainFogPace.value=fogFrequency/frequency;
     uniforms.rainFogPhase.value+=step;
@@ -769,7 +882,7 @@ function createRainFog(T){
   }
   const densityAt=(x,y,z,pace=1)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value,wave,pace)-1)*amount;
   const fogDensityAt=(x,y,z)=>1+(RainField.density(x,y,z,uniforms.rainFogShift.value,uniforms.rainFogPhase.value,{...wave,travel:fogTravel},uniforms.rainFogPace.value)-1)*amount;
-  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,frequency,fogFrequency,cadenceFactor,instantFogFrequency:fogFrequency*cadenceFactor,instantRainFrequency:frequency*cadenceFactor,wavelength:wave.wavelength,travel:wave.travel,fogTravel,samples:[fogDensityAt(-100,20,-60),fogDensityAt(0,20,-60),fogDensityAt(100,20,-60)]});
+  const diagnostics=()=>({shift:{...uniforms.rainFogShift.value},phase:uniforms.rainFogPhase.value,amount,fogAmount:uniforms.rainFogAmount.value,frequency,fogFrequency,cadenceFactor,gustFrequency,gustSpeed,instantFogFrequency:fogFrequency*cadenceFactor*gustFrequency,instantRainFrequency:frequency*cadenceFactor*gustFrequency,wavelength:wave.wavelength,travel:wave.travel,fogTravel,samples:[fogDensityAt(-100,20,-60),fogDensityAt(0,20,-60),fogDensityAt(100,20,-60)]});
   return{install,update,densityAt,fogDensityAt,diagnostics,uniforms};
 }
 ViewAtmosphere.RainField=RainField;ViewAtmosphere.createRainFog=createRainFog;
@@ -875,7 +988,7 @@ function createMistCurtains(T,scene,random=Math.random,buildings=[],rainField=nu
   let initialized=false;
   function update(dt,clock,weather,visual,camera,surfaceHeight){
     const step=Math.max(0,dt),angle=Math.atan2(weather.vn,weather.ve),blend=1-Math.exp(-step*1.8);
-    uniforms.mistClock.value=clock;uniforms.mistOpacity.value=visual.mistOpacity*.16;
+    uniforms.mistClock.value=clock;uniforms.mistOpacity.value=visual.mistOpacity*.16*(1+.35*(visual.gustPileup??0)+.8*(visual.gustBurst??0));
     mesh.count=visual.mistOpacity>.005?total:0;
     const wrap=(x,a,b)=>a+((x-a)%(b-a)+(b-a))%(b-a);
     for(let i=0;i<total;i++){
@@ -1176,7 +1289,7 @@ function createWindScenery({T,scene,M,random,randomRange,sampleAt}){
   function update(dt,simDt,time){
     const field=sampleAt(0,55),ms=Math.max(.01,field.ms),windE=field.ve/ms,windZ=-field.vn/ms;
     for(const item of items){
-      const w=sampleAt(item.x,item.z),k=Math.max(w.sustained,w.gust*.87);item.currentWind=k;
+      const w=sampleAt(item.x,item.z),k=Math.max(0,w.gust);item.currentWind=k;
       if(!item.failed){
         item.windE=w.ve/Math.max(.01,w.ms);item.windZ=-w.vn/Math.max(.01,w.ms);
         item.damage=M.advanceDamage(item.damage,item.kind,k,simDt,item.resistance);
@@ -1552,11 +1665,11 @@ const WeatherSound=(()=>{
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   const fromDb=db=>Math.pow(10,db/20);
   function profile(weather,M){
-    const kt=Math.max(0,weather.ms/M.KT),rain=Math.max(0,weather.rain);
-    const visual=M.visuals(Math.max(weather.sustained,weather.gust*.85),rain);
+    const kt=Math.max(0,weather.gust??weather.ms/M.KT),rain=Math.max(0,weather.rain);
+    const visual=M.weatherVisuals(weather),gust=M.gustResponse(weather);
     const speed=Math.hypot(weather.ms*visual.rainSpeed,visual.rainFall),calm=M.visuals(0,rain).rainFall;
     const rainLevel=.25*Math.pow(rain/10,rain<10?1.05:.72);
-    return{kt,rain,speed,rainLevel,
+    return{kt,rain,speed,rainLevel,gustBurst:gust.burst,gustRise:gust.rise,whistleBoost:(1+3*gust.burst)*(1+.75*gust.rise),whistleFrequency:1.05*clamp(900+8*(kt-155),900,2300),
       dropLevel:rainLevel*Math.pow(Math.max(1,(1+rain/3)/(1+1/3)),-.3),
       dropTrimDb:0,rainLowpass:6500,rainHighpass:350,
       flightGain:1.55+.45*Math.log1p(Math.max(0,speed/Math.max(.1,calm)-1)),
@@ -1610,8 +1723,9 @@ const WeatherSound=(()=>{
     windNoise.start();whiteNoise.start();whistleOsc.start();
     const nextDrop=()=>-Math.log(Math.max(1e-12,1-random()));
     let scheduledUntil=context.currentTime,phase=0,threshold=nextDrop(),dropCount=0,lastDrop=null;
-    let whistleStart=0,whistleEnd=0,nextWhistle=context.currentTime+.5+random(),pitchAt=0,pitch=1300,whistleLevel=0,whistleCount=0;
+    let whistleStart=0,whistleEnd=0,nextWhistle=context.currentTime+.5+random(),whistleLevel=0,whistleCount=0;
     let swellAt=0,whistleSwellDb=0,whistleEventDb=0,leakTarget=0;
+    let gustWhistleArmed=true;
     let nextDistortion=context.currentTime+4+random()*7,distortionEnd=0,distortionLevel=0,lastProfile=null,masterTarget=0;
     const target=(param,value,now,time)=>param.setTargetAtTime(value,now,time);
     function update(weather,{enabled=false,paused=false,volume=50}={}){
@@ -1644,16 +1758,18 @@ const WeatherSound=(()=>{
         }
         scheduledUntil=now+.18;
       }else{scheduledUntil=now;phase=0;}
-      if(active&&p.whistle>0&&now>=nextWhistle){
+      if(p.gustBurst<.08)gustWhistleArmed=true;
+      const gustWhistle=p.gustBurst>.2&&gustWhistleArmed;
+      if(active&&p.whistle>0&&gustWhistle)gustWhistleArmed=false;
+      if(active&&p.whistle>0&&now>=whistleEnd&&(now>=nextWhistle||gustWhistle)){
         whistleStart=now;whistleEnd=now+4+random()*6;nextWhistle=whistleEnd+1+random()*3;
-        whistleEventDb=-20+random()*9.5;whistleLevel=fromDb(whistleEventDb);pitch=900+random()*1000;pitchAt=now;swellAt=now;whistleCount++;
+        whistleEventDb=-20+random()*9.5;whistleLevel=fromDb(whistleEventDb);swellAt=now;whistleCount++;
         const real=new Float32Array(5),imag=new Float32Array([0,1,.02+random()*.12,random()*.07,random()*.025]);
         whistleOsc.setPeriodicWave(context.createPeriodicWave(real,imag));whistleBand.Q.value=6+random()*8;
       }
-      if(active&&now<whistleEnd&&now>=pitchAt){
-        const frequency=pitch*(.93+random()*.14);target(whistleOsc.frequency,frequency,now,.8);target(whistleBand.frequency,frequency,now,.8);
-        target(leakBand.frequency,frequency*(.8+random()*.7),now,.4);
-        pitchAt=now+.8+random()*1.7;
+      if(active&&now<whistleEnd){
+        target(whistleOsc.frequency,p.whistleFrequency,now,.12);target(whistleBand.frequency,p.whistleFrequency,now,.12);
+        target(leakBand.frequency,p.whistleFrequency,now,.18);
       }
       if(active&&now<whistleEnd&&now>=swellAt){
         whistleSwellDb=-10+random()*12.5;
@@ -1663,7 +1779,7 @@ const WeatherSound=(()=>{
         swellAt=now+.35+random()*1.05;
       }
       const whistleEnvelope=M.smooth(whistleStart,whistleStart+.7,now)*(1-M.smooth(whistleEnd-.9,whistleEnd,now));
-      target(whistle.gain,active&&now<whistleEnd?whistleLevel*p.whistle*(1+.8*clamp((p.kt-190)/60,0,1))*whistleEnvelope:0,now,.1);
+      target(whistle.gain,active&&now<whistleEnd?whistleLevel*p.whistle*p.whistleBoost*(1+.8*clamp((p.kt-190)/60,0,1))*whistleEnvelope:0,now,.1);
       if(active&&p.distortion>0&&now>=nextDistortion){distortionEnd=now+.3+random()*.9;nextDistortion=distortionEnd+4+random()*10;distortionLevel=.035+random()*.085;}
       target(windWet.gain,active&&now<distortionEnd?distortionLevel*p.distortion:0,now,.15);
       target(rumble.gain,.8*p.rumble,now,.45);target(rumbleWet.gain,.7*p.rumble,now,.5);
@@ -1687,8 +1803,9 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
   const mobileControls=()=>matchMedia("(pointer:coarse)").matches||innerWidth<=1000;
   const currentSite=()=>OBSERVATION_SITES.find(p=>p.id===state.siteId)||OBSERVATION_SITES[0];
   const observer=()=>ObserverCamera.observer(state,currentSite());
+  let variability=M.createVariability(),fluctuations=variability.snapshot();
   const fieldOptions=()=>({eyeRadius:state.eyeRadius,wallRadius:state.wallRadius,stormRadius:state.stormRadius,influenceRadius:state.influenceRadius,rainStrength:state.rainStrength,heading:state.motionHeading,motionSpeed:state.motionSpeed});
-  const sampleField=()=>{const p=observer();return M.sample(state.east-p.east,state.north-p.north,state.intensity,fieldOptions(),state.simTime/60);};
+  const sampleField=()=>{const p=observer();return M.sample(state.east-p.east,state.north-p.north,state.intensity,fieldOptions(),state.simTime/60,fluctuations);};
   let target = sampleField();
   const weather = { ...target };
   let flowAngle = Math.atan2(weather.vn, weather.ve);
@@ -1815,7 +1932,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
     function batch(material,x,y,z,w,h,d,rotation=0) { if(!instanceGroups.has(material))instanceGroups.set(material,[]);instanceGroups.get(material).push([x,y,z,w,h,d,rotation]); }
     function box(material,x,y,z,w,h,d) { const mesh = new T.Mesh(cube,material);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);scene.add(mesh);return mesh; }
     const concrete = [mat('#959d98'),mat('#afb0a2'),mat('#9aa7a9'),mat('#b5b4a6'),mat('#849695')];
-    windScene=createWindScenery({T,scene,M,random,randomRange,sampleAt:(x,z)=>M.sample(state.east-x/1000,state.north-(55-z)/1000,state.intensity,fieldOptions(),state.simTime/60)});
+    windScene=createWindScenery({T,scene,M,random,randomRange,sampleAt:(x,z)=>M.sample(state.east-x/1000,state.north-(55-z)/1000,state.intensity,fieldOptions(),state.simTime/60,fluctuations)});
     floodDebris=createFloodDebris({T,scene,M});
     const trim = mat('#c3c7bb'), darkTrim = mat('#6c7c7d'), windowDark = mat('#3d535a',{metalness:.2,roughness:.4}), windowMid = mat('#63797d',{metalness:.25,roughness:.4}), windowWarm = mat('#a7a087',{emissive:'#534c31',emissiveIntensity:.14}), balconyRail = mat('#5b6e71'), acMat=mat('#bdc3b7');
     // Permanent terrain determines inundation by depth, never by sliding a blue surface inland.
@@ -2016,7 +2133,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
   }
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
-    const visual=M.visuals(Math.max(kt,weather.gust*.85),weather.rain),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
+    const visual=M.weatherVisuals(weather),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
     // Transport uses elapsed weather time, so low frame rates do not slow falling rain or ripples.
     rainFog.update(weatherDt,weather,visual,state.clearFog,scene);
     const anchor=camera.position,previous=particleCamera||anchor;
@@ -2027,10 +2144,10 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
     const rainVelocity={x:vx*visual.rainSpeed,y:-fall,z:vz*visual.rainSpeed};
     const relativeRain=ObserverCamera.particleMotion(rainVelocity,cameraDelta,weatherDt,viewDt),wrap=ObserverCamera.wrap;
     const trailTime=Math.max(visual.rainTrail,visual.rainTrailMinLength/Math.max(.1,Math.hypot(rainVelocity.x,rainVelocity.y,rainVelocity.z)));
-    rain.userData.motion={speedFactor:visual.rainSpeed,velocityWorld:rainVelocity,trailTime,minTrailLength:visual.rainTrailMinLength};
+    rain.userData.motion={speedFactor:visual.rainSpeed,gustSpeed:visual.gustSpeed,gustFrequency:visual.gustFrequency,velocityWorld:rainVelocity,trailTime,minTrailLength:visual.rainTrailMinLength};
     rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);
     const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*75000*visual.rainDensity));
-    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74)*.72;
+    rainGeo.setDrawRange(0,count*2);rainMat.opacity=Math.min(1,clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74)*.72*visual.rainOpacity);
     const p=rain.userData.points;
     for(let i=0;i<count;i++){
       const k=i*3,j=i*6;p[k]+=relativeRain.x;p[k+1]+=relativeRain.y;p[k+2]+=relativeRain.z;
@@ -2053,7 +2170,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
     windScene.update(dt,weatherDt*state.timeScale,t);
     trees.forEach((tree,i)=>{
       if(tree.userData.failed)return;
-      const local=M.sample(state.east-tree.position.x/1000,state.north-(55-tree.position.z)/1000,state.intensity,fieldOptions(),state.simTime/60),localVisual=M.visuals(Math.max(local.sustained,local.gust*.85),local.rain),localMs=Math.max(.01,local.ms),treeE=local.ve/localMs,treeZ=-local.vn/localMs;
+      const local=M.sample(state.east-tree.position.x/1000,state.north-(55-tree.position.z)/1000,state.intensity,fieldOptions(),state.simTime/60,fluctuations),localVisual=M.visuals(Math.max(local.sustained,local.gust*.85),local.rain),localMs=Math.max(.01,local.ms),treeE=local.ve/localMs,treeZ=-local.vn/localMs;
       const bend=Math.max(.001,localVisual.treeBend*(1+.08*Math.sin(t*3.3+i)+.04*Math.sin(t*6+i))),H=tree.userData.height;
       const {trunk,crown,original}=tree.userData,a=trunk.geometry.attributes.position;
       for(let k=0;k<a.count;k++){
@@ -2157,14 +2274,21 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
     ObserverCamera.move(state,touchFlightKeys.size?new Set([...flightKeys,...touchFlightKeys]):flightKeys,logicalDt);
     if(fullscreenActive()&&mouseLookEnabled&&document.pointerLockElement!==view&&(edgePan.x||edgePan.y)){const speed=logicalDt/Math.sqrt(Math.max(.5,state.zoom));turnView(state.yaw+edgePan.x*95*speed,state.pitch-edgePan.y*65*speed);}
     if(!state.paused){state.time+=logicalDt;state.simTime+=logicalDt*state.timeScale;if(state.advect&&state.motionSpeed>0){const km=state.motionSpeed*1.852*logicalDt*state.timeScale/3600;state.east+=Math.sin(state.motionHeading*RAD)*km;state.north+=Math.cos(state.motionHeading*RAD)*km;}}
+    if(!state.paused)fluctuations=variability.advance(Math.max(0,rawdt));
     target=sampleField();
     const blend=1-Math.exp(-logicalDt*(target.region==='outer'?16:6));
     const cloudTarget=Math.max(target.cloudCover,weather.rain>0?1:0);
     weather.cloudCover+=(cloudTarget-weather.cloudCover)*(1-Math.exp(-logicalDt*12));
     const rainReady=M.smooth(.98,.999,weather.cloudCover);
-    weather.rain+=(target.rain*rainReady-weather.rain)*blend;
-    if(target.rain===0&&weather.rain<.001)weather.rain=0;
-    ['sustained','meanMs','ms','gust','visibility','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
+    weather.meanRain+=(target.meanRain*rainReady-weather.meanRain)*blend;
+    if(target.meanRain===0&&weather.meanRain<.001)weather.meanRain=0;
+    weather.rainRatio=target.rainRatio;weather.rain=weather.meanRain*weather.rainRatio;
+    ['sustained','meanMs','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
+    const previousGust=weather.gust;
+    weather.gustRatio=target.gustRatio;weather.gust=weather.sustained*weather.gustRatio;weather.ms=weather.gust*M.KT;
+    weather.gustRiseRate=state.paused||rawdt<=0?0:(weather.gust-previousGust)/rawdt;
+    weather.gustVisualRise=M.advanceGustVisualRise(weather.gustVisualRise,weather,state.paused?0:rawdt);
+    weather.visibility=M.visibility({...target,rain:weather.rain,gust:weather.gust,sustained:weather.sustained});
     if(target.ms>.001){const next=Math.atan2(target.vn,target.ve),difference=Math.atan2(Math.sin(next-flowAngle),Math.cos(next-flowAngle));flowAngle+=difference*blend;}
     weather.ve=Math.cos(flowAngle)*weather.ms;weather.vn=Math.sin(flowAngle)*weather.ms;
 
@@ -2266,7 +2390,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
     };
     $('aboutButton').onclick=()=>$('about').showModal();$('about').addEventListener('click',e=>{if(e.target===$('about')){const r=$('about').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('about').close();}});
     $('restoreButton').onclick=()=>{if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();lastShadowTime=-1;updateReadings();};
-    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound,soundVolume=state.soundVolume;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound,soundVolume});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
+    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound,soundVolume=state.soundVolume;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound,soundVolume});variability=M.createVariability();fluctuations=variability.snapshot();$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
 
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
     document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();syncSoundTimer();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
@@ -2278,6 +2402,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=WeatherSound;
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
   window.TyphoonSimulator.audioDiagnostics=()=>weatherSound?.diagnostics();
+  window.TyphoonSimulator.variabilityDiagnostics=()=>({...fluctuations,response:M.gustResponse(weather)});
   window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base,motion:eyeClouds?.diagnostics(weather)});
   window.TyphoonSimulator.mistDiagnostics=()=>mist?.diagnostics();
   window.TyphoonSimulator.viewportDiagnostics=()=>({bufferWidth,bufferHeight,bufferResizes,aspect:camera?.aspect,centerDirection:camera?{x:-camera.matrixWorld.elements[8],y:-camera.matrixWorld.elements[9],z:-camera.matrixWorld.elements[10]}:null});

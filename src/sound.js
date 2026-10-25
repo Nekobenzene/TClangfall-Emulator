@@ -3,11 +3,11 @@ const WeatherSound=(()=>{
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   const fromDb=db=>Math.pow(10,db/20);
   function profile(weather,M){
-    const kt=Math.max(0,weather.ms/M.KT),rain=Math.max(0,weather.rain);
-    const visual=M.visuals(Math.max(weather.sustained,weather.gust*.85),rain);
+    const kt=Math.max(0,weather.gust??weather.ms/M.KT),rain=Math.max(0,weather.rain);
+    const visual=M.weatherVisuals(weather),gust=M.gustResponse(weather);
     const speed=Math.hypot(weather.ms*visual.rainSpeed,visual.rainFall),calm=M.visuals(0,rain).rainFall;
     const rainLevel=.25*Math.pow(rain/10,rain<10?1.05:.72);
-    return{kt,rain,speed,rainLevel,
+    return{kt,rain,speed,rainLevel,gustBurst:gust.burst,gustRise:gust.rise,whistleBoost:(1+3*gust.burst)*(1+.75*gust.rise),whistleFrequency:1.05*clamp(900+8*(kt-155),900,2300),
       dropLevel:rainLevel*Math.pow(Math.max(1,(1+rain/3)/(1+1/3)),-.3),
       dropTrimDb:0,rainLowpass:6500,rainHighpass:350,
       flightGain:1.55+.45*Math.log1p(Math.max(0,speed/Math.max(.1,calm)-1)),
@@ -61,8 +61,9 @@ const WeatherSound=(()=>{
     windNoise.start();whiteNoise.start();whistleOsc.start();
     const nextDrop=()=>-Math.log(Math.max(1e-12,1-random()));
     let scheduledUntil=context.currentTime,phase=0,threshold=nextDrop(),dropCount=0,lastDrop=null;
-    let whistleStart=0,whistleEnd=0,nextWhistle=context.currentTime+.5+random(),pitchAt=0,pitch=1300,whistleLevel=0,whistleCount=0;
+    let whistleStart=0,whistleEnd=0,nextWhistle=context.currentTime+.5+random(),whistleLevel=0,whistleCount=0;
     let swellAt=0,whistleSwellDb=0,whistleEventDb=0,leakTarget=0;
+    let gustWhistleArmed=true;
     let nextDistortion=context.currentTime+4+random()*7,distortionEnd=0,distortionLevel=0,lastProfile=null,masterTarget=0;
     const target=(param,value,now,time)=>param.setTargetAtTime(value,now,time);
     function update(weather,{enabled=false,paused=false,volume=50}={}){
@@ -95,16 +96,18 @@ const WeatherSound=(()=>{
         }
         scheduledUntil=now+.18;
       }else{scheduledUntil=now;phase=0;}
-      if(active&&p.whistle>0&&now>=nextWhistle){
+      if(p.gustBurst<.08)gustWhistleArmed=true;
+      const gustWhistle=p.gustBurst>.2&&gustWhistleArmed;
+      if(active&&p.whistle>0&&gustWhistle)gustWhistleArmed=false;
+      if(active&&p.whistle>0&&now>=whistleEnd&&(now>=nextWhistle||gustWhistle)){
         whistleStart=now;whistleEnd=now+4+random()*6;nextWhistle=whistleEnd+1+random()*3;
-        whistleEventDb=-20+random()*9.5;whistleLevel=fromDb(whistleEventDb);pitch=900+random()*1000;pitchAt=now;swellAt=now;whistleCount++;
+        whistleEventDb=-20+random()*9.5;whistleLevel=fromDb(whistleEventDb);swellAt=now;whistleCount++;
         const real=new Float32Array(5),imag=new Float32Array([0,1,.02+random()*.12,random()*.07,random()*.025]);
         whistleOsc.setPeriodicWave(context.createPeriodicWave(real,imag));whistleBand.Q.value=6+random()*8;
       }
-      if(active&&now<whistleEnd&&now>=pitchAt){
-        const frequency=pitch*(.93+random()*.14);target(whistleOsc.frequency,frequency,now,.8);target(whistleBand.frequency,frequency,now,.8);
-        target(leakBand.frequency,frequency*(.8+random()*.7),now,.4);
-        pitchAt=now+.8+random()*1.7;
+      if(active&&now<whistleEnd){
+        target(whistleOsc.frequency,p.whistleFrequency,now,.12);target(whistleBand.frequency,p.whistleFrequency,now,.12);
+        target(leakBand.frequency,p.whistleFrequency,now,.18);
       }
       if(active&&now<whistleEnd&&now>=swellAt){
         whistleSwellDb=-10+random()*12.5;
@@ -114,7 +117,7 @@ const WeatherSound=(()=>{
         swellAt=now+.35+random()*1.05;
       }
       const whistleEnvelope=M.smooth(whistleStart,whistleStart+.7,now)*(1-M.smooth(whistleEnd-.9,whistleEnd,now));
-      target(whistle.gain,active&&now<whistleEnd?whistleLevel*p.whistle*(1+.8*clamp((p.kt-190)/60,0,1))*whistleEnvelope:0,now,.1);
+      target(whistle.gain,active&&now<whistleEnd?whistleLevel*p.whistle*p.whistleBoost*(1+.8*clamp((p.kt-190)/60,0,1))*whistleEnvelope:0,now,.1);
       if(active&&p.distortion>0&&now>=nextDistortion){distortionEnd=now+.3+random()*.9;nextDistortion=distortionEnd+4+random()*10;distortionLevel=.035+random()*.085;}
       target(windWet.gain,active&&now<distortionEnd?distortionLevel*p.distortion:0,now,.15);
       target(rumble.gain,.8*p.rumble,now,.45);target(rumbleWet.gain,.7*p.rumble,now,.5);

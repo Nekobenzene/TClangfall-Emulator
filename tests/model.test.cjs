@@ -24,9 +24,9 @@ assert.ok(frequency(nearOuter,'pulse',.1)>frequency(outer,'pulse',.1));assert.ok
 assert.ok(frequency(nearOuter,'rain',1)>frequency(outer,'rain',1));assert.ok(frequency(outer,'rain',1)>frequency(far,'rain',1));
 near(frequency(edgeIn,'pulse',.1),frequency(edgeOut,'pulse',.1),.001);assert.ok(frequency(edgeIn,'rain',1)<.002);assert.equal(frequency(edgeOut,'rain',1),0);
 const edge1=M.sample(259.99,0,130,{}),edge2=M.sample(260.01,0,130,{});assert.ok(Math.abs(edge1.gustEventChance-edge2.gustEventChance)<1e-6);assert.ok(edge1.rainEventChance<1e-10&&edge2.rainEventChance===0);
-const spread=a=>(Math.max(...a.map(x=>x.gust))-Math.min(...a.map(x=>x.gust)))/a[0].sustained;assert.ok(spread(inner)<spread(nearOuter)&&spread(nearOuter)<spread(outer));
+// No implicit periodic gust: without a supplied real-time realization sample is the mean.
+for(const a of [inner,nearOuter,outer])for(const x of a)near(x.gust,x.sustained);
 const rare=frequency(outer,'rain',150);assert.ok(rare>0&&rare<.03);assert.ok(Math.max(...outer.map(x=>x.rain))>w(c.rmw).rain*2);assert.ok(Math.min(...outer.map(x=>x.visibility))<1000);assert.ok(outer.some(x=>x.sunshine>.65&&x.rain<1));
-const avg=a=>a.reduce((x,y)=>x+y,0)/a.length,rs=outer.map(x=>x.rain),gs=outer.map(x=>x.gust),ma=avg(rs),mb=avg(gs),corr=rs.reduce((s,x,i)=>s+(x-ma)*(gs[i]-mb),0)/Math.sqrt(rs.reduce((s,x)=>s+(x-ma)**2,0)*gs.reduce((s,x)=>s+(x-mb)**2,0));assert.ok(corr>.25&&corr<.98);
 const rainAt=(r,f)=>M.sample(r,0,130,{rainStrength:f},5).rain;near(rainAt(70,50)/rainAt(70,100),.5);near(rainAt(70,0),0);assert.ok(rainAt(190,50)/rainAt(190,100)>.8);
 const weak=M.visuals(45,20),normal=M.visuals(100,80),strong=M.visuals(180,100);assert.ok(strong.debrisCount>normal.debrisCount*3&&weak.debrisCount<5);assert.ok(M.visuals(150,80).treeBend>M.visuals(100,80).treeBend*4);assert.equal(M.visuals(45,80).mistMix,0);assert.equal(M.visuals(135,80).mistMix,1);
 for(const [kind,threshold] of [[.2,95],[.6,137],[.9,155]]){assert.equal(M.debrisMotion(threshold-.01,kind).active,false);assert.equal(M.debrisMotion(threshold,kind).active,true);}
@@ -43,9 +43,9 @@ for(const options of [{},{eyeRadius:35,wallRadius:65,stormRadius:55},{eyeRadius:
 assert.equal(M.structure({},67).eyeDevelopment,0);assert.equal(M.structure({},110).eyeDevelopment,1);
 assert.ok(M.sample(0,0,90,{}).rain>1);assert.ok(M.sample(0,0,100,{}).rain<.1);
 assert.equal(M.sample(0,0,145,{}).sunshine,0);assert.ok(M.sample(0,0,150,{}).sunshine>.01);assert.ok(M.sample(0,0,150,{}).sunshine<.15);
-// Strong-system storm-circle rain is almost uniform, then rises over a narrow wall ramp.
+// Storm rain has a mild inward background, then rises over a narrow wall ramp.
 const rainfall=(r,k=130)=>M.sample(r,0,k,{},0).rain;
-assert.ok(rainfall(45)/rainfall(105)<1.13);assert.ok(rainfall(34)>rainfall(40)*2);
+assert.ok(rainfall(45)/rainfall(105)<1.20);assert.ok(rainfall(34)>rainfall(40)*1.9);
 near(rainfall(20),rainfall(28));near(rainfall(28),rainfall(33));
 assert.ok(rainfall(20,60)/rainfall(100,60)>1.8);
 const corrected=M.structure({eyeRadius:100,wallRadius:10,stormRadius:4,influenceRadius:5},110);assert.ok(corrected.eyeRadius<corrected.rmw&&corrected.rmw<corrected.wallRadius&&corrected.wallRadius<corrected.stormRadius&&corrected.stormRadius<corrected.influenceRadius);

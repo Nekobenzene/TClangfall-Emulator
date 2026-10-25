@@ -81,7 +81,7 @@ function createWindScenery({T,scene,M,random,randomRange,sampleAt}){
   function update(dt,simDt,time){
     const field=sampleAt(0,55),ms=Math.max(.01,field.ms),windE=field.ve/ms,windZ=-field.vn/ms;
     for(const item of items){
-      const w=sampleAt(item.x,item.z),k=Math.max(w.sustained,w.gust*.87);item.currentWind=k;
+      const w=sampleAt(item.x,item.z),k=Math.max(0,w.gust);item.currentWind=k;
       if(!item.failed){
         item.windE=w.ve/Math.max(.01,w.ms);item.windZ=-w.vn/Math.max(.01,w.ms);
         item.damage=M.advanceDamage(item.damage,item.kind,k,simDt,item.resistance);

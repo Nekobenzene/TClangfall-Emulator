@@ -7,10 +7,12 @@ const server=http.createServer((req,res)=>{res.setHeader('content-type','text/ht
   const page=await browser.newPage({viewport:{width:1366,height:768}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.TyphoonSimulator?.diagnostics().sceneReady);
   await page.evaluate(()=>{
    const original=StormModel.sample;window.rainFixture={kt:20,rain:120};
-   StormModel.sample=(...args)=>{const w=original(...args),f=window.rainFixture,o=StormModel.rainOptics(f.kt,f.rain);return{...w,sustained:f.kt,meanMs:f.kt*StormModel.KT,ms:f.kt*StormModel.KT,gust:f.kt,ve:f.kt*StormModel.KT,vn:0,rain:f.rain,visibility:StormModel.clamp(Math.log(20)/(Math.log(20)/11000+StormModel.rainExtinction(f.rain,o.mistMix,o.extinction,f.kt)),55,11000),sunshine:0};};
+   // These are steady reference scenes; reversal/decay is checked in variability.browser.cjs.
+   StormModel.advanceGustVisualRise=()=>0;
+   StormModel.sample=(...args)=>{const w=original(...args),f=window.rainFixture,o=StormModel.rainOptics(f.kt,f.rain);return{...w,sustained:f.kt,meanMs:f.kt*StormModel.KT,ms:f.kt*StormModel.KT,gust:f.kt,gustRatio:1,ve:f.kt*StormModel.KT,vn:0,rain:f.rain,meanRain:f.rain,rainRatio:1,visibility:StormModel.clamp(Math.log(20)/(Math.log(20)/11000+StormModel.rainExtinction(f.rain,o.mistMix,o.extinction,f.kt)),55,11000),sunshine:0};};
   });
   const shots=[];
-  for(const [kt,rain,name] of [[0,50,'静风雨丝'],[20,120,'弱风大雨雨幕'],[45,50,'45kt-雨丝'],[90,50,'90kt-细密雨'],[95,50,'95kt-细雨雾过渡'],[100,50,'100kt-细雨雾过渡'],[105,50,'105kt-细雨雾过渡'],[110,50,'110kt-细雨雾过渡'],[120,50,'120kt-频率'],[150,50,'150kt-频率'],[200,50,'200kt-长拖尾'],[125,50,'125kt-细雨雾过渡'],[135,50,'135kt-细雨雾'],[170,65,'170kt-65mm-200米能见度']]){
+  for(const [kt,rain,name] of [[0,50,'静风雨丝'],[20,120,'弱风大雨雨幕'],[45,50,'45kt-雨丝'],[90,50,'90kt-细密雨'],[95,50,'95kt-细雨雾过渡'],[100,50,'100kt-细雨雾过渡'],[105,50,'105kt-细雨雾过渡'],[110,50,'110kt-细雨雾过渡'],[120,50,'120kt-频率'],[150,50,'150kt-频率'],[200,50,'200kt-长拖尾'],[125,50,'125kt-细雨雾过渡'],[135,50,'135kt-细雨雾'],[200,65,'200kt-65mm-250米能见度']]){
    await page.evaluate(f=>Object.assign(window.rainFixture,f),{kt,rain});
    await page.waitForFunction(({kt,rain})=>Math.abs(TyphoonSimulator.getWeather().sustained-kt)<.001&&Math.abs(TyphoonSimulator.getWeather().rain-rain)<.001,{kt,rain});
    await page.waitForFunction(kt=>Math.abs(TyphoonSimulator.rainDiagnostics().field.fogFrequency-RainField.frequencies(kt).fog)<.01,kt);
@@ -21,7 +23,7 @@ const server=http.createServer((req,res)=>{res.setHeader('content-type','text/ht
   }
   const at=k=>shots.find(s=>s.kt===k),fine=at(135);
   assert.ok(fine.count>at(45).count*3);assert.ok(at(45).count>29000&&at(20).count>60000);assert.ok(fine.opacity>at(45).opacity);assert.ok(fine.trailLength<at(45).trailLength*.5);assert.ok(at(95).trailLength/at(110).trailLength<2.5);assert.ok(at(110).trailLength>fine.trailLength);assert.ok(at(200).trailLength>=at(0).trailLength*.5,'actual buffer tail at 200 kt exceeds half of calm');assert.ok(Math.abs(at(200).motion.speedFactor-2)<1e-9);assert.ok(at(120).motion.speedFactor<at(150).motion.speedFactor);assert.ok(at(20).mistOpacity>.1);
-  assert.ok(Math.abs((await page.evaluate(()=>TyphoonSimulator.getWeather().visibility))-200)<1);
+  assert.ok(Math.abs((await page.evaluate(()=>TyphoonSimulator.getWeather().visibility))-250)<1);
   const before=await page.evaluate(()=>TyphoonSimulator.rainDiagnostics().field);await page.waitForFunction(x=>TyphoonSimulator.rainDiagnostics().field.shift.x>x+1,before.shift.x);
   await page.locator('#pauseButton').click();const frozen=await page.evaluate(()=>({field:TyphoonSimulator.rainDiagnostics().field,frame:TyphoonSimulator.diagnostics().renderedFrames}));await page.waitForFunction(n=>TyphoonSimulator.diagnostics().renderedFrames>n+6,frozen.frame);const pausedField=await page.evaluate(()=>TyphoonSimulator.rainDiagnostics().field);assert.deepEqual(pausedField.shift,frozen.field.shift);assert.equal(pausedField.phase,frozen.field.phase);assert.equal(pausedField.travel,frozen.field.travel);assert.equal(pausedField.fogTravel,frozen.field.fogTravel);
   // With the weather paused, flight/rotation must change perspective without carrying debris along.

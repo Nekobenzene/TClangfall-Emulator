@@ -21,6 +21,14 @@ for(const [kt,hz]of [[120,2],[150,3],[200,F.frequencies(200).fog],[250,F.frequen
  near(field.diagnostics().fogFrequency,hz);assert.ok(Math.abs(peaks(mist)/10-hz)<.35,'actual fog cadence at '+kt);assert.ok(Math.abs(peaks(rain)/10-F.frequencies(kt).rain)<.35,'actual rain cadence at '+kt);
 }
 assert.ok(F.frequencies(250).fog<3.5&&F.frequencies(250).fog-F.frequencies(200).fog<.15,'cadence approaches a finite ceiling');
+// A gust crest doubles the phase rate while transport gains only 30 percent.
+const baseField=createRainFog({Vector3,ShaderChunk:chunks}),crestField=createRainFog({Vector3,ShaderChunk:chunks});
+baseField.update(.1,weather,visual,false);
+crestField.update(.1,weather,{...visual,curtainDrift:visual.curtainDrift*1.3,curtainFall:visual.curtainFall*1.3,gustFrequency:2,gustSpeed:1.3},false);
+const baseRate=baseField.diagnostics(),crestRate=crestField.diagnostics();
+near(crestRate.instantFogFrequency/baseRate.instantFogFrequency,2);near(crestRate.travel/baseRate.travel,2);
+near(crestRate.shift.x/baseRate.shift.x,1.3);near(crestRate.shift.y/baseRate.shift.y,1.3);
+near(crestRate.wavelength,baseRate.wavelength);
 const factors=[];let factorPrior=1,maxFactorStep=0;
 for(let i=0;i<36000;i++){const f=F.variation(i/120);factors.push(f);maxFactorStep=Math.max(maxFactorStep,Math.abs(f-factorPrior));factorPrior=f;}
 assert.ok(Math.min(...factors)>=.3&&Math.min(...factors)<.31&&Math.max(...factors)>1.69&&Math.max(...factors)<=1.7,'surges reach ±70% without exceeding their bounds');

@@ -46,6 +46,102 @@
       heading:((Number(options.heading)||0)%360+360)%360,motionSpeed:clamp(Number(options.motionSpeed)||0,0,60)};
   }
   function hash(n){const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+  // Direct continuous-time random flight in log space. A monotone cubic CDF
+  // supplies a continuous density with the specified central masses and tails.
+  // Random reversals integrate -d(log density); no threshold is a fixed turning
+  // point, and no temporal waveform or selected peak is interpolated/reshaped.
+  function logFlight(widths,seed){
+    let word=seed>>>0;
+    const random=()=>{word=(word+0x6D2B79F5)>>>0;let n=word;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return((n^(n>>>14))>>>0)/4294967296;};
+    const exponential=()=>-Math.log1p(-random());
+    const knots=[0,...widths.map(Math.log1p)],mass=[.025,.225,.225],c=knots[3];
+    const spans=mass.map((p,i)=>knots[i+1]-knots[i]),secants=mass.map((p,i)=>p/spans[i]);
+    const density=[];
+    density[0]=Math.max(0,((2*spans[0]+spans[1])*secants[0]-spans[0]*secants[1])/(spans[0]+spans[1]));
+    for(let i=1;i<3;i++){
+      const w1=2*spans[i]+spans[i-1],w2=spans[i]+2*spans[i-1];
+      density[i]=(w1+w2)/(w1/secants[i-1]+w2/secants[i]);
+    }
+    density[3]=Math.max(0,((2*spans[2]+spans[1])*secants[2]-spans[2]*secants[1])/(spans[2]+spans[1]));
+    const tail=.025/density[3],pieces=mass.map((p,i)=>({
+      a:density[i],b:6*secants[i]-4*density[i]-2*density[i+1],d:3*density[i]+3*density[i+1]-6*secants[i]
+    }));
+    const cdf=(i,t)=>spans[i]*(pieces[i].a*t+pieces[i].b*t*t/2+pieces[i].d*t*t*t/3);
+    const logDensity=x=>{
+      const r=Math.abs(x);if(r>=c)return Math.log(density[3])-(r-c)/tail;
+      const i=r<knots[1]?0:r<knots[2]?1:2,t=(r-knots[i])/spans[i],p=pieces[i];
+      return Math.log(p.a+t*(p.b+p.d*t));
+    };
+    // Split only at density extrema so each integrated hazard is monotone.
+    const positive=knots.slice(1);
+    for(let i=0;i<3;i++){const p=pieces[i],t=-p.b/(2*p.d);if(t>0&&t<1)positive.push(knots[i]+spans[i]*t);}
+    positive.sort((a,b)=>a-b);
+    const edges=[-Infinity,...positive.slice().reverse().map(x=>-x),0,...positive,Infinity];
+    const speed=()=>c/3*(.55+.9*random())*(random()<.5?-1:1);
+    const u=random()/2;let magnitude;
+    if(u>=.475)magnitude=c+tail*exponential();
+    else{
+      const i=u<.025?0:u<.25?1:2,target=u-[0,.025,.25][i];let low=0,high=1;
+      for(let j=0;j<44;j++){const mid=(low+high)/2;if(cdf(i,mid)<target)low=mid;else high=mid;}
+      magnitude=knots[i]+spans[i]*(low+high)/2;
+    }
+    let x=magnitude*(random()<.5?-1:1),band=edges.findIndex(edge=>edge>x)-1;
+    let velocity=speed(),refresh=2.5*exponential(),hazard=exponential();
+    function advance(dt){
+      let remaining=Math.max(0,dt);
+      while(remaining>0){
+        const direction=velocity>0?1:-1,boundary=edges[band+(direction>0?1:0)];
+        const crossing=Math.max(0,(boundary-x)/velocity);
+        const limit=Math.min(remaining,crossing,refresh),end=limit===crossing?boundary:x+velocity*limit;
+        const startDensity=logDensity(x),consumed=Math.max(0,startDensity-logDensity(end));
+        if(consumed>=hazard){
+          const target=startDensity-hazard;let low=0,high=1;
+          for(let j=0;j<44;j++){const mid=(low+high)/2;if(logDensity(x+(end-x)*mid)>target)low=mid;else high=mid;}
+          const fraction=(low+high)/2,step=limit*fraction;
+          x+=(end-x)*fraction;remaining-=step;refresh-=step;velocity=-velocity;hazard=exponential();
+        }else{
+          x=end;remaining-=limit;hazard-=consumed;
+          const refreshed=limit===refresh;refresh-=limit;
+          if(limit===crossing)band+=direction;
+          if(refreshed){velocity=speed();refresh=2.5*exponential();}
+        }
+      }
+      return Math.exp(x);
+    }
+    return{advance,value:()=>Math.exp(x)};
+  }
+  function createVariability(seed=Date.now()){
+    const initialSeed=Number(seed)>>>0;
+    const wind=logFlight([.02,.10,.25],initialSeed^0x9E3779B9);
+    const stormWind=logFlight([.03,.12,.25],initialSeed^0x27D4EB2F);
+    const storm=logFlight([.02,.08,.15],initialSeed^0x85EBCA6B);
+    const wall=logFlight([.01,.04,.08],initialSeed^0xC2B2AE35);
+    let seconds=0;
+    const snapshot=()=>({seed:initialSeed,seconds,gust:wind.value(),stormGust:stormWind.value(),stormRain:storm.value(),wallRain:wall.value()});
+    return{snapshot,advance(dt){const step=Math.max(0,dt);seconds+=step;wind.advance(step);stormWind.advance(step);storm.advance(step);wall.advance(step);return snapshot();}};
+  }
+  // A sharp, continuous crest response acts on rendering and sound only.
+  function gustResponse(weather){
+    const ratio=weather.sustained>0?weather.gust/weather.sustained:1;
+    const charge=smooth(1.08,1.25,ratio),gate=smooth(80,120,weather.sustained);
+    const crest=gate*Math.pow(charge,3),pileup=gate*charge*(1-charge)*4;
+    // Positive kt per real second only; falling gusts have no rise contribution.
+    const rise=gate*-Math.expm1(-Math.max(0,weather.gustRiseRate??0)/Math.max(1,weather.sustained)/.012);
+    const burst=1-(1-crest)*(1-rise);
+    return{ratio,crest,rise,burst,pileup,frequency:1+burst,speed:1+.3*burst};
+  }
+  function weatherVisuals(weather){
+    const visual=visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain),gust=gustResponse(weather);
+    const rise=weather.gustVisualRise??gust.rise,burst=1-(1-gust.crest)*(1-rise),speed=1+.3*burst;
+    return{...visual,rainSpeed:visual.rainSpeed*speed,rainFall:visual.rainFall*speed,rainDensity:visual.rainDensity*(1+.25*burst),rainOpacity:1+.35*burst,
+      curtainDrift:visual.curtainDrift*speed,curtainFall:visual.curtainFall*speed,
+      gustFrequency:1+burst,gustSpeed:speed,gustBurst:burst,gustPileup:gust.pileup};
+  }
+  // Smooth the display response only; the random wind and raw rise factor stay intact.
+  function advanceGustVisualRise(previous,weather,dt){
+    const value=clamp(previous??0,0,1),goal=gustResponse(weather).rise;
+    return value+(goal-value)*-Math.expm1(-Math.max(0,dt)/(goal>value?.25:.55));
+  }
   // Nested event chance and duration: more frequent inward without increasing pulse amplitude.
   function cell(t,period,seed,inward=1,occurrence=1){
     const index=Math.floor(t/period),f=t-index*period;
@@ -55,6 +151,9 @@
     return smooth(start,start+.18,f)*(1-smooth(start+duration,start+duration+.45,f))*(.55+.45*hash(index+seed+61));
   }
   function squall(t,seed=0,inward=1,occurrence=1){return Math.max(cell(t,6.7,seed+13,inward,occurrence),cell(t+2.2,11.3,seed+81,inward,occurrence));}
+  function stormBackground(cfg,radius,intensity){
+    return cfg.hasStorm?smooth(34,67,intensity)*smooth(cfg.rmw,Math.max(cfg.rmw+8,cfg.windWallRadius),radius)*(1-smooth(cfg.wallRadius,cfg.stormRadius,radius)):0;
+  }
   function meanWind(east,north,intensity=110,options=28,time=0){
     intensity=strength(intensity);
     const cfg=options.preparedIntensity===intensity?options:structure(options,intensity);
@@ -75,12 +174,14 @@
     // Smooth low-order asymmetry only. The peak is preserved and strong cores become rounder.
     const a=Math.atan2(north,east),asym=.04*(1-.94*smooth(67,185,intensity));
     profile+=asym*profile*(1-profile)*(.7*Math.sin(a+.4+time*.002)+.3*Math.sin(2*a-.8));
+    const backgroundWeight=stormBackground(cfg,radius,intensity);
+    profile*=1+.06*backgroundWeight*(1-profile);
     profile=configured('wind.profile',()=>profile,{profile,radius,intensity,rmw,eyeRadius,stormRadius,influenceRadius,eyeDevelopment,time});
     let ve=0,vn=0;
     if(radius>1e-8){const inflow=15*RAD;ve=(north*Math.cos(inflow)+east*Math.sin(inflow))/radius*intensity*profile;vn=(-east*Math.cos(inflow)+north*Math.sin(inflow))/radius*intensity*profile;}
     const translation=.65*motionSpeed*profile;ve+=Math.sin(heading*RAD)*translation;vn+=Math.cos(heading*RAD)*translation;
     const sustained=Math.hypot(ve,vn),right=(-east)*Math.cos(heading*RAD)-(-north)*Math.sin(heading*RAD);
-    return {...cfg,radius,q,profile,sustained,meanMs:sustained*KT,ve,vn,
+    return {...cfg,radius,q,profile,backgroundWeight,sustained,meanMs:sustained*KT,ve,vn,
       semicircle:motionSpeed<.05||radius<.1?'none':right>=0?'danger':'safe',
       region:radius>=influenceRadius?'clear':hasEye&&eyeDevelopment>0&&radius<eyeRadius?'eye':hasEye&&eyeDevelopment>0&&radius<=cfg.wallRadius?'wall':hasStorm&&radius<=stormRadius?'storm':!hasStorm&&radius<=bandRadius?'core':'outer'};
   }
@@ -111,13 +212,18 @@
   }
   function rainExtinction(rain,mist=0,dropExtinction=0,kt=0){
     // Scenario calibration: weak winds leave rain visibility unchanged; strong
-    // winds add spray/haze. Logarithmic tails soften growth beyond 165/180 kt,
-    // matching value and slope at each join; 65 mm/h -> 200/150 m at 170/200 kt.
-    const windU=Math.min(kt,165),windAmplitude=1.142314,windPower=4.599372;
-    const windSlope=windAmplitude*windPower/50*Math.pow(45/50,windPower-1);
-    const windTail=12*Math.log1p(clamp(kt-165,0,15)/12)+(12/27)*6*Math.log1p(Math.max(0,kt-180)/6);
+    // winds add spray/haze. A logarithmic tail softens growth above 155 kt,
+    // preserving value/slope at the join; 65 mm/h -> about 250 m at 200 kt.
+    const windU=Math.min(kt,155),windAmplitude=1.142314,windPower=4.599372;
+    const windSlope=windAmplitude*windPower/50*Math.pow(35/50,windPower-1);
+    const windTail=6*Math.log1p(Math.max(0,kt-155)/6);
     const windGain=1+windAmplitude*Math.pow(Math.max(0,(windU-120)/50),windPower)+windSlope*windTail;
     return configured('weather.rainExtinction',()=>(Math.log(20)/350-Math.log(20)/11000)*Math.pow(Math.max(0,rain)/75,.85)*windGain,{rain,mist,dropExtinction,kt,windGain});
+  }
+  function visibility(weather){
+    const {rain,gust,intensity,sustained,radius}=weather,ms=gust*KT,optics=rainOptics(gust,rain),mist=optics.mistMix;
+    const extinction=rainExtinction(rain,mist,optics.extinction,gust);
+    return configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
   }
   function debrisMotion(kt,kind){
     const heavy=kind>.8,medium=kind>.46&&!heavy,threshold=heavy?155:medium?137:95,lift=smooth(threshold,heavy?210:medium?190:160,kt);
@@ -163,16 +269,19 @@
     const afloat=depth>draft,shallow=smooth(draft,draft+.3,depth);
     return{afloat,draft,speed:afloat?Math.max(0,kt)*KT*(.018+.047/(1+bulk*2.8))*(.25+.75*shallow):0,response:1.2+bulk*5};
   }
-  function sample(east,north,intensity=110,options=28,time=0){
+  function sample(east,north,intensity=110,options=28,time=0,fluctuations=null){
     intensity=strength(intensity);
     const field=meanWind(east,north,intensity,options,time);
     const {eyeRadius,wallRadius,influenceRadius,bandRadius,radius,hasEye,eyeDevelopment,eyeClearing,sustained}=field;
-    const outerMix=smooth(bandRadius,influenceRadius,radius),inward=1-outerMix,outside=smooth(influenceRadius,influenceRadius+30,radius);
+    const outerMix=smooth(bandRadius,influenceRadius,radius),inward=1-outerMix;
     const rainEdge=1-smooth(influenceRadius*.94,influenceRadius,radius);
     const rainOccurrence=smooth(0,.18,inward);
     const pulse=squall(time,5,inward),rainPulse=clamp(.72*squall(time-.65,5,inward,rainOccurrence)+.38*squall(time+1.4,47,inward,rainOccurrence),0,1);
-    const gustFactor=(1.10+.035*Math.sin(time*1.37)+.10*pulse)*(1-outerMix)+(.72+1.75*pulse)*outerMix*(1-outside)+(.85+.65*pulse)*outside;
-    const gust=sustained*gustFactor,angle=(hash(Math.floor((time+1.1)/6.7)+39)-.5)*1.9*pulse*outerMix+.12*Math.sin(time*2.4)*outerMix;
+    const wallWeight=eyeDevelopment*(1-smooth(eyeRadius+(wallRadius-eyeRadius)*.84,wallRadius,radius));
+    const coreWeight=1-smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius);
+    const stormWeight=field.hasStorm?coreWeight*(1-wallWeight)*smooth(34,67,intensity):0;
+    const gustFactor=Math.exp((1-stormWeight)*Math.log(fluctuations?.gust??1)+stormWeight*Math.log(fluctuations?.stormGust??fluctuations?.gust??1));
+    const gust=sustained*gustFactor,angle=Math.log(gustFactor)*.8*outerMix;
     const cv=Math.cos(angle),sv=Math.sin(angle),ve=(field.ve*cv-field.vn*sv)*gustFactor*KT,vn=(field.ve*sv+field.vn*cv)*gustFactor*KT;
     const rainFactor=field.rainStrength/100,scale=rainFactor;
     const outerScale=(.9+.1*smooth(20,140,intensity))*(.85+.15*rainFactor);
@@ -181,28 +290,31 @@
       // Nearly level storm-circle rain; a narrow outer eyewall ramp leads to an inner plateau.
       // Without an eye, use a stronger, broad inward rain gradient instead.
       const broadRain=26+34*(1-smooth(0,bandRadius,radius));
-      const stormRain=26+3*(1-smooth(wallRadius,bandRadius,radius));
-      const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.72,wallRadius,radius);
-      const developedRain=stormRain+43*wallRamp;
+      const stormRain=26+6*eyeDevelopment+2*(1-smooth(wallRadius,bandRadius,radius));
+      const wallRamp=1-smooth(eyeRadius+(wallRadius-eyeRadius)*.84,wallRadius,radius);
+      const developedRain=stormRain+(72-stormRain)*wallRamp;
       // Rain begins as the feathered inner cloud-wall footprint passes overhead.
       // Weak/developing eyes retain a wider, wetter inner transition.
       const sharpEye=smooth(100,150,intensity),rainStart=eyeRadius*(.25+.735*sharpEye);
       const rainEnd=eyeRadius+clamp((wallRadius-eyeRadius)*(.18-.171*sharpEye),.12,3);
       const eyeDrying=eyeClearing*(1-smooth(rainStart,rainEnd,radius));
       rain=(broadRain+(developedRain-broadRain)*eyeDevelopment)*(1-eyeDrying)*scale;
-      rain*=1+.035*Math.sin(time*.9)*smooth(0,bandRadius,radius);
     }
     else{
       const mix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius);
       const rare=hash(Math.floor(time/18.7)+307)<.045+.09*inward?1:0;
       const shower=(75*Math.pow(rainPulse,1.25)+190*rare*Math.pow(rainPulse,2.4))*smooth(.02,.08,rainPulse);
-      rain=((1-mix)*26*scale*(1+.035*Math.sin(time*.9))+mix*shower*outerScale)*rainEdge;
+      rain=((1-mix)*(26+6*eyeDevelopment*eyeDevelopment)*scale+mix*shower*outerScale)*rainEdge;
     }
+    rain+=3*field.backgroundWeight*(1-wallWeight)*scale;
     const eyeSun=configured('weather.eyeSun',()=>hasEye?smooth(145,180,intensity)*(1-smooth(eyeRadius*.35,eyeRadius*.88,radius)):0,{hasEye,intensity,eyeRadius,radius});
     const breakMix=smooth(bandRadius,bandRadius+(influenceRadius-bandRadius)*.38,radius),dryBreak=(1-smooth(.02,.18,rainPulse))*breakMix;
     let sunshine=clamp(eyeSun+dryBreak*.82*(1-rainEdge*.15)+.90*(1-rainEdge),0,1);
     rain*=1-sunshine;
     rain=configured('weather.rain',()=>rain*.90,{rain,intensity,sustained,radius,eyeRadius,wallRadius,bandRadius,rainFactor,rainPulse,sunshine,time});
+    const meanRain=rain;
+    const rainRatio=Math.exp(coreWeight*((1-wallWeight)*Math.log(fluctuations?.stormRain??1)+wallWeight*Math.log(fluctuations?.wallRain??1)));
+    rain*=rainRatio;
     // Cloud events are broader and more frequent than rain, with an advance cloud shoulder.
     const futurePulse=offset=>clamp(.72*squall(time+offset-.65,5,inward,rainOccurrence)+.38*squall(time+offset+1.4,47,inward,rainOccurrence),0,1);
     const advanceCloud=smooth(0,.015,Math.max(rainPulse,futurePulse(.35),futurePulse(.7)));
@@ -212,12 +324,11 @@
     const cloudCore=1-smooth(bandRadius+(influenceRadius-bandRadius)*.38,bandRadius+(influenceRadius-bandRadius)*.62,radius);
     const cloudCover=rain>0?1:clamp(Math.max(cloudCore*eyeCloud,advanceCloud*cloudEdge*breakMix,dryCloud*cloudEdge*breakMix),0,1);
     sunshine=Math.min(sunshine,1-cloudCover);
-    const ms=Math.hypot(ve,vn),optics=rainOptics(Math.max(sustained,gust*.85),rain),mist=optics.mistMix,extinction=rainExtinction(rain,mist,optics.extinction,sustained);
+    const ms=Math.hypot(ve,vn),viewVisibility=visibility({rain,gust,intensity,sustained,radius});
     // MOR uses 5% transmission (ln(20)/beta), not a ground-wind-squared penalty.
-    const visibility=configured('weather.visibility',()=>clamp(Math.log(20)/(Math.log(20)/11000+extinction),55,11000),{rain,ms,mist,gust,intensity,sustained,radius,extinction});
-    return {...field,ms,ve,vn,gust,rain,visibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,cloudCover,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
+    return {...field,ms,ve,vn,gust,gustRatio:gustFactor,rain,meanRain,rainRatio,wallWeight,stormWeight,visibility:viewVisibility,bearing:ms<.5?null:(Math.atan2(-ve,-vn)/RAD+360)%360,pulse,rainPulse,outerMix,inward,sunshine,cloudCover,rainEventChance:(.24+.74*inward)*rainOccurrence,gustEventChance:.24+.74*inward,surge:surge(sustained)};
   }
-  const api={sample,meanWind,structure,visuals,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
+  const api={sample,meanWind,structure,visuals,weatherVisuals,gustResponse,advanceGustVisualRise,createVariability,visibility,rainOptics,rainExtinction,dropFall,debrisMotion,debrisSupply,floatingMotion,surge,surgeResponse,advanceSurge,survivalTime,advanceDamage,damageKinds,squall,clamp,smooth,KT,coastProfile,coastTerraces,coastalHeight,waterEdge,floodDepth};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.StormModel=api;
 })(typeof window!=='undefined'?window:globalThis);

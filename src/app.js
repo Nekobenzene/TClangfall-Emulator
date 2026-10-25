@@ -8,8 +8,9 @@
   const mobileControls=()=>matchMedia("(pointer:coarse)").matches||innerWidth<=1000;
   const currentSite=()=>OBSERVATION_SITES.find(p=>p.id===state.siteId)||OBSERVATION_SITES[0];
   const observer=()=>ObserverCamera.observer(state,currentSite());
+  let variability=M.createVariability(),fluctuations=variability.snapshot();
   const fieldOptions=()=>({eyeRadius:state.eyeRadius,wallRadius:state.wallRadius,stormRadius:state.stormRadius,influenceRadius:state.influenceRadius,rainStrength:state.rainStrength,heading:state.motionHeading,motionSpeed:state.motionSpeed});
-  const sampleField=()=>{const p=observer();return M.sample(state.east-p.east,state.north-p.north,state.intensity,fieldOptions(),state.simTime/60);};
+  const sampleField=()=>{const p=observer();return M.sample(state.east-p.east,state.north-p.north,state.intensity,fieldOptions(),state.simTime/60,fluctuations);};
   let target = sampleField();
   const weather = { ...target };
   let flowAngle = Math.atan2(weather.vn, weather.ve);
@@ -136,7 +137,7 @@
     function batch(material,x,y,z,w,h,d,rotation=0) { if(!instanceGroups.has(material))instanceGroups.set(material,[]);instanceGroups.get(material).push([x,y,z,w,h,d,rotation]); }
     function box(material,x,y,z,w,h,d) { const mesh = new T.Mesh(cube,material);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);scene.add(mesh);return mesh; }
     const concrete = [mat('#959d98'),mat('#afb0a2'),mat('#9aa7a9'),mat('#b5b4a6'),mat('#849695')];
-    windScene=createWindScenery({T,scene,M,random,randomRange,sampleAt:(x,z)=>M.sample(state.east-x/1000,state.north-(55-z)/1000,state.intensity,fieldOptions(),state.simTime/60)});
+    windScene=createWindScenery({T,scene,M,random,randomRange,sampleAt:(x,z)=>M.sample(state.east-x/1000,state.north-(55-z)/1000,state.intensity,fieldOptions(),state.simTime/60,fluctuations)});
     floodDebris=createFloodDebris({T,scene,M});
     const trim = mat('#c3c7bb'), darkTrim = mat('#6c7c7d'), windowDark = mat('#3d535a',{metalness:.2,roughness:.4}), windowMid = mat('#63797d',{metalness:.25,roughness:.4}), windowWarm = mat('#a7a087',{emissive:'#534c31',emissiveIntensity:.14}), balconyRail = mat('#5b6e71'), acMat=mat('#bdc3b7');
     // Permanent terrain determines inundation by depth, never by sliding a blue surface inland.
@@ -337,7 +338,7 @@
   }
   function animateWeather(dt,weatherDt=dt,viewDt=dt){
     const T=THREE,t=state.time,ms=weather.ms,kt=weather.sustained;
-    const visual=M.visuals(Math.max(kt,weather.gust*.85),weather.rain),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
+    const visual=M.weatherVisuals(weather),vx=weather.ve,vz=-weather.vn,fall=visual.rainFall;
     // Transport uses elapsed weather time, so low frame rates do not slow falling rain or ripples.
     rainFog.update(weatherDt,weather,visual,state.clearFog,scene);
     const anchor=camera.position,previous=particleCamera||anchor;
@@ -348,10 +349,10 @@
     const rainVelocity={x:vx*visual.rainSpeed,y:-fall,z:vz*visual.rainSpeed};
     const relativeRain=ObserverCamera.particleMotion(rainVelocity,cameraDelta,weatherDt,viewDt),wrap=ObserverCamera.wrap;
     const trailTime=Math.max(visual.rainTrail,visual.rainTrailMinLength/Math.max(.1,Math.hypot(rainVelocity.x,rainVelocity.y,rainVelocity.z)));
-    rain.userData.motion={speedFactor:visual.rainSpeed,velocityWorld:rainVelocity,trailTime,minTrailLength:visual.rainTrailMinLength};
+    rain.userData.motion={speedFactor:visual.rainSpeed,gustSpeed:visual.gustSpeed,gustFrequency:visual.gustFrequency,velocityWorld:rainVelocity,trailTime,minTrailLength:visual.rainTrailMinLength};
     rain.position.set(camera.position.x,camera.position.y-18,camera.position.z-55);debris.position.set(camera.position.x,0,camera.position.z-55);
     const count=Math.min(rain.userData.points.length/3,Math.round(Math.pow(clamp(weather.rain/150,0,1),.85)*75000*visual.rainDensity));
-    rainGeo.setDrawRange(0,count*2);rainMat.opacity=clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74)*.72;
+    rainGeo.setDrawRange(0,count*2);rainMat.opacity=Math.min(1,clamp(.21+weather.rain*.0022+visual.mistMix*.065,.21,.74)*.72*visual.rainOpacity);
     const p=rain.userData.points;
     for(let i=0;i<count;i++){
       const k=i*3,j=i*6;p[k]+=relativeRain.x;p[k+1]+=relativeRain.y;p[k+2]+=relativeRain.z;
@@ -374,7 +375,7 @@
     windScene.update(dt,weatherDt*state.timeScale,t);
     trees.forEach((tree,i)=>{
       if(tree.userData.failed)return;
-      const local=M.sample(state.east-tree.position.x/1000,state.north-(55-tree.position.z)/1000,state.intensity,fieldOptions(),state.simTime/60),localVisual=M.visuals(Math.max(local.sustained,local.gust*.85),local.rain),localMs=Math.max(.01,local.ms),treeE=local.ve/localMs,treeZ=-local.vn/localMs;
+      const local=M.sample(state.east-tree.position.x/1000,state.north-(55-tree.position.z)/1000,state.intensity,fieldOptions(),state.simTime/60,fluctuations),localVisual=M.visuals(Math.max(local.sustained,local.gust*.85),local.rain),localMs=Math.max(.01,local.ms),treeE=local.ve/localMs,treeZ=-local.vn/localMs;
       const bend=Math.max(.001,localVisual.treeBend*(1+.08*Math.sin(t*3.3+i)+.04*Math.sin(t*6+i))),H=tree.userData.height;
       const {trunk,crown,original}=tree.userData,a=trunk.geometry.attributes.position;
       for(let k=0;k<a.count;k++){
@@ -478,14 +479,21 @@
     ObserverCamera.move(state,touchFlightKeys.size?new Set([...flightKeys,...touchFlightKeys]):flightKeys,logicalDt);
     if(fullscreenActive()&&mouseLookEnabled&&document.pointerLockElement!==view&&(edgePan.x||edgePan.y)){const speed=logicalDt/Math.sqrt(Math.max(.5,state.zoom));turnView(state.yaw+edgePan.x*95*speed,state.pitch-edgePan.y*65*speed);}
     if(!state.paused){state.time+=logicalDt;state.simTime+=logicalDt*state.timeScale;if(state.advect&&state.motionSpeed>0){const km=state.motionSpeed*1.852*logicalDt*state.timeScale/3600;state.east+=Math.sin(state.motionHeading*RAD)*km;state.north+=Math.cos(state.motionHeading*RAD)*km;}}
+    if(!state.paused)fluctuations=variability.advance(Math.max(0,rawdt));
     target=sampleField();
     const blend=1-Math.exp(-logicalDt*(target.region==='outer'?16:6));
     const cloudTarget=Math.max(target.cloudCover,weather.rain>0?1:0);
     weather.cloudCover+=(cloudTarget-weather.cloudCover)*(1-Math.exp(-logicalDt*12));
     const rainReady=M.smooth(.98,.999,weather.cloudCover);
-    weather.rain+=(target.rain*rainReady-weather.rain)*blend;
-    if(target.rain===0&&weather.rain<.001)weather.rain=0;
-    ['sustained','meanMs','ms','gust','visibility','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
+    weather.meanRain+=(target.meanRain*rainReady-weather.meanRain)*blend;
+    if(target.meanRain===0&&weather.meanRain<.001)weather.meanRain=0;
+    weather.rainRatio=target.rainRatio;weather.rain=weather.meanRain*weather.rainRatio;
+    ['sustained','meanMs','sunshine','outerMix','pulse'].forEach(k=>weather[k]+=(target[k]-weather[k])*blend);
+    const previousGust=weather.gust;
+    weather.gustRatio=target.gustRatio;weather.gust=weather.sustained*weather.gustRatio;weather.ms=weather.gust*M.KT;
+    weather.gustRiseRate=state.paused||rawdt<=0?0:(weather.gust-previousGust)/rawdt;
+    weather.gustVisualRise=M.advanceGustVisualRise(weather.gustVisualRise,weather,state.paused?0:rawdt);
+    weather.visibility=M.visibility({...target,rain:weather.rain,gust:weather.gust,sustained:weather.sustained});
     if(target.ms>.001){const next=Math.atan2(target.vn,target.ve),difference=Math.atan2(Math.sin(next-flowAngle),Math.cos(next-flowAngle));flowAngle+=difference*blend;}
     weather.ve=Math.cos(flowAngle)*weather.ms;weather.vn=Math.sin(flowAngle)*weather.ms;
 
@@ -587,7 +595,7 @@
     };
     $('aboutButton').onclick=()=>$('about').showModal();$('about').addEventListener('click',e=>{if(e.target===$('about')){const r=$('about').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('about').close();}});
     $('restoreButton').onclick=()=>{if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();lastShadowTime=-1;updateReadings();};
-    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound,soundVolume=state.soundVolume;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound,soundVolume});$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
+    $('resetButton').onclick=()=>{touchReleases.forEach(clear=>clear());const sound=state.sound,soundVolume=state.soundVolume;surgeLevel=0;surgeMemory={level:0,crest:0,holdRadius:0};if(windScene)windScene.restore();if(floodDebris)floodDebris.reset();Object.assign(state,defaults,{sound,soundVolume});variability=M.createVariability();fluctuations=variability.snapshot();$('moveButton').textContent='开始推进中心';$('moveButton').setAttribute('aria-pressed','false');$('pauseButton').textContent='暂停模拟';$('pauseButton').setAttribute('aria-pressed','false');mapController.syncMode();updateCamera();resizeCanvases();updateTarget('wall');};
 
     window.addEventListener('resize',resizeCanvases);new ResizeObserver(resizeCanvases).observe(view);
     document.addEventListener('visibilitychange',()=>{flightKeys.clear();last=performance.now();syncSoundTimer();if(audioCtx&&document.hidden)audioCtx.suspend();else if(audioCtx&&state.sound)audioCtx.resume().catch(()=>{});});
@@ -599,6 +607,7 @@
   window.TyphoonSimulator={getState:()=>({...state}),getWeather:()=>({...weather}),getTarget:()=>({...target}),diagnostics:()=>({sceneReady,renderedFrames,fps,drawCalls:renderer?renderer.info.render.calls:0,triangles:renderer?renderer.info.render.triangles:0,debrisCount:debris?.count,damage:windScene?.stats(),surgeMemory:{...surgeMemory},surgeLevel,waterEdge:M.waterEdge(surgeLevel),waterPosition:sea?{x:sea.position.x,z:sea.position.z}:null,terraceDepths:M.coastTerraces.map(p=>({name:p.name,height:p.height,depth:M.floodDepth(p.x,surgeLevel)})),rainCount:rainGeo?rainGeo.drawRange.count/2:0,mistMix:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).mistMix,treeBend:M.visuals(Math.max(weather.sustained,weather.gust*.85),weather.rain).treeBend,windVectorWorld:{x:weather.ve,z:-weather.vn}})};
   window.TyphoonSimulator.floatingDiagnostics=()=>floodDebris?.stats();
   window.TyphoonSimulator.audioDiagnostics=()=>weatherSound?.diagnostics();
+  window.TyphoonSimulator.variabilityDiagnostics=()=>({...fluctuations,response:M.gustResponse(weather)});
   window.TyphoonSimulator.cloudDiagnostics=()=>({base:sky?.material.uniforms.deckHeight.value,coverage:sky?.material.uniforms.deck.value,visibility:eyeClouds?.uniforms.eyeVisibility.value,wallBase:EyeWall.shape(state.intensity,state.eyeRadius,state.wallRadius).base,motion:eyeClouds?.diagnostics(weather)});
   window.TyphoonSimulator.mistDiagnostics=()=>mist?.diagnostics();
   window.TyphoonSimulator.viewportDiagnostics=()=>({bufferWidth,bufferHeight,bufferResizes,aspect:camera?.aspect,centerDirection:camera?{x:-camera.matrixWorld.elements[8],y:-camera.matrixWorld.elements[9],z:-camera.matrixWorld.elements[10]}:null});
